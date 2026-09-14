@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 14px system-ui, -apple-system, sans-serif; background: #faf9f7; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>FretLab UI Audit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --canvas:#f7f4ed; --surface:#fffdf9; --sunk:#f3efe6;
+    --line:#e7e1d5; --line-soft:#f0ebe1;
+    --ink:#1b1a1f; --ink-2:#4a4753; --ink-3:#6f6a7b; --ink-4:#8a8593;
+    --accent:#6152d9; --accent-ink:#3d33a3; --accent-soft:#ded8fb;
+    --accent-softer:#efecfd; --accent-line:#cdc4f6;
+    --dark:#17161b; --dark-2:#232228;
+    --ok:#27845f; --ok-bg:#e2f4ec; --ok-line:#b5ddcb;
+    --warn:#b4632b; --warn-bg:#fbeee1; --warn-line:#eccfaf;
+    --bad:#a33b57; --bad-bg:#fbe6ec; --bad-line:#eec2ce;
+    --font:"Lexend",system-ui,-apple-system,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas:#131217; --surface:#1c1b21; --sunk:#232228;
+      --line:#302e38; --line-soft:#272630;
+      --ink:#f4f2f7; --ink-2:#c5c1ce; --ink-3:#9d98a8; --ink-4:#7d7788;
+      --accent:#a396f5; --accent-ink:#c3b9fa; --accent-soft:#332c63;
+      --accent-softer:#262148; --accent-line:#453c7d;
+      --dark:#0e0d12; --dark-2:#1a1920;
+      --ok:#56b98d; --ok-bg:#16302a; --ok-line:#2a5a48;
+      --warn:#d79355; --warn-bg:#33251a; --warn-line:#5c4227;
+      --bad:#d9788f; --bad-bg:#331c25; --bad-line:#5c3241;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas:#131217; --surface:#1c1b21; --sunk:#232228;
+    --line:#302e38; --line-soft:#272630;
+    --ink:#f4f2f7; --ink-2:#c5c1ce; --ink-3:#9d98a8; --ink-4:#7d7788;
+    --accent:#a396f5; --accent-ink:#c3b9fa; --accent-soft:#332c63;
+    --accent-softer:#262148; --accent-line:#453c7d;
+    --dark:#0e0d12; --dark-2:#1a1920;
+    --ok:#56b98d; --ok-bg:#16302a; --ok-line:#2a5a48;
+    --warn:#d79355; --warn-bg:#33251a; --warn-line:#5c4227;
+    --bad:#d9788f; --bad-bg:#331c25; --bad-line:#5c3241;
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    background:var(--canvas); color:var(--ink); font-family:var(--font);
+    font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:920px; margin:0 auto; padding-inline:22px; padding-block:0 90px; }
+
+  /* Masthead */
+  .mast {
+    background:var(--dark); margin-inline:-22px; padding:46px 22px 36px;
+    position:relative; overflow:hidden; margin-bottom:38px;
+  }
+  .mast::before {
+    content:""; position:absolute; inset:0; pointer-events:none; opacity:.05;
+    background:repeating-linear-gradient(90deg,#fff 0 1px,transparent 1px 74px),
+               repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 30px);
+  }
+  .mast-in { position:relative; max-width:876px; margin:0 auto; }
+  .eyebrow {
+    font-family:var(--mono); font-size:.66rem; letter-spacing:.18em;
+    text-transform:uppercase; color:rgba(255,255,255,.42);
+  }
+  h1 {
+    margin:10px 0 12px; font-size:clamp(2rem,6vw,2.9rem); font-weight:800;
+    letter-spacing:-.035em; line-height:1.04; color:#fff; text-wrap:balance;
+  }
+  .dek { margin:0 0 26px; max-width:58ch; color:rgba(255,255,255,.58); font-size:1rem; }
+  .vitals { display:flex; flex-wrap:wrap; gap:0; }
+  .vital { padding:12px 22px 12px 0; margin-right:22px; border-right:1px solid rgba(255,255,255,.1); }
+  .vital:last-child { border-right:none; margin-right:0; }
+  .vital b {
+    display:block; font-family:var(--mono); font-size:1.45rem; font-weight:700;
+    letter-spacing:-.03em; line-height:1; color:#fff; font-variant-numeric:tabular-nums;
+  }
+  .vital span {
+    display:block; margin-top:5px; font-size:.63rem; letter-spacing:.1em;
+    text-transform:uppercase; color:rgba(255,255,255,.38);
+  }
+  .vital.bad b { color:#f0a0b3; }
+  .vital.good b { color:#7fd2ab; }
+
+  section { margin-bottom:56px; }
+  h2 { margin:0 0 6px; font-size:1.5rem; font-weight:700; letter-spacing:-.025em; text-wrap:balance; }
+  .sec-head { border-bottom:2px solid var(--ink); padding-bottom:10px; margin-bottom:24px; }
+  .sec-head p { margin:5px 0 0; color:var(--ink-3); font-size:.9rem; max-width:64ch; }
+  h3 { margin:34px 0 12px; font-size:1.06rem; font-weight:700; letter-spacing:-.015em; }
+  h3:first-child { margin-top:0; }
+  h4 {
+    margin:22px 0 8px; font-family:var(--mono); font-size:.68rem; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3);
+  }
+  p { margin:0 0 12px; max-width:70ch; }
+  a { color:var(--accent-ink); }
+  code { font-family:var(--mono); font-size:.86em; background:var(--sunk); padding:1px 5px; border-radius:5px; color:var(--ink-2); }
+  strong { font-weight:700; }
+
+  /* Figure */
+  figure { margin:0 0 24px; }
+  .shot {
+    border:1px solid var(--line); border-radius:12px; overflow:hidden;
+    background:var(--sunk); display:block; line-height:0;
+  }
+  .shot img { width:100%; height:auto; display:block; }
+  figcaption {
+    margin-top:9px; font-size:.78rem; color:var(--ink-3); line-height:1.5;
+    font-family:var(--mono); letter-spacing:.01em;
+  }
+  .pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:24px; }
+  .pair figure { margin:0; }
+
+  /* Findings list */
+  ol.find { margin:0 0 16px; padding-left:0; list-style:none; counter-reset:f; }
+  ol.find > li {
+    counter-increment:f; position:relative; padding:0 0 14px 34px;
+    font-size:.89rem; color:var(--ink-2); line-height:1.6; max-width:72ch;
+  }
+  ol.find > li::before {
+    content:counter(f,decimal-leading-zero); position:absolute; left:0; top:1px;
+    font-family:var(--mono); font-size:.7rem; font-weight:700; color:var(--bad);
+  }
+  ol.find > li b { color:var(--ink); font-weight:700; }
+  ul.plain { margin:0 0 14px; padding-left:18px; }
+  ul.plain li { margin-bottom:7px; color:var(--ink-2); font-size:.88rem; max-width:70ch; }
+  ul.plain li b { color:var(--ink); }
+
+  /* Tables */
+  .scroll { overflow-x:auto; margin-bottom:18px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:.84rem; }
+  th {
+    text-align:left; font-family:var(--mono); font-size:.63rem; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3);
+    padding:11px 14px; background:var(--sunk); border-bottom:1px solid var(--line); white-space:nowrap;
+  }
+  td { padding:9px 14px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.m { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  td.n { font-weight:600; color:var(--ink); }
+  td.d { color:var(--ink-3); }
+  td.r { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:700; }
+  .fail { color:var(--bad); font-weight:700; }
+  .pass { color:var(--ok); font-weight:600; }
+  tr.sev td { background:var(--bad-bg); }
+
+  /* Callout */
+  .note {
+    border-left:3px solid var(--accent); background:var(--accent-softer);
+    padding:15px 19px; border-radius:0 12px 12px 0; margin-bottom:20px;
+  }
+  .note p { margin:0; font-size:.88rem; color:var(--ink-2); }
+  .note p + p { margin-top:9px; }
+  .note strong { color:var(--accent-ink); }
+  .note.alarm { border-left-color:var(--bad); background:var(--bad-bg); }
+  .note.alarm strong { color:var(--bad); }
+
+  /* Good list */
+  .good { border:1px solid var(--ok-line); background:var(--ok-bg); border-radius:14px; padding:20px 22px; }
+  .good h3 { margin:0 0 10px; color:var(--ok); }
+  .good ul { margin:0; padding-left:18px; }
+  .good li { margin-bottom:8px; font-size:.88rem; color:var(--ink-2); }
+  .good li:last-child { margin-bottom:0; }
+  .good li b { color:var(--ink); }
+
+  footer {
+    margin-top:52px; padding-top:18px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:.7rem; color:var(--ink-4); letter-spacing:.04em;
+  }
+  @media (max-width:560px) {
+    .vital { border-right:none; padding-right:0; margin-right:26px; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mast-in">
+      <div class="eyebrow">Visual and interaction audit &middot; 13 Sep 2026</div>
+      <h1>FretLab UI Audit</h1>
+      <p class="dek">
+        Every route captured at desktop and phone width, with the token layer, contrast ratios and
+        scale discipline measured against the project's own design system. These are things I saw
+        or measured, not inferred from source.
+      </p>
+      <div class="vitals">
+        <div class="vital bad"><b>441</b><span>components specified</span></div>
+        <div class="vital bad"><b>0</b><span>of them used</span></div>
+        <div class="vital bad"><b>1,078</b><span>inline style objects</span></div>
+        <div class="vital bad"><b>41</b><span>font sizes for 6 steps</span></div>
+        <div class="vital bad"><b>9</b><span>contrast pairs failing AA</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ HEADLINE ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>The headline</h2>
+      <p>A complete, documented design system already exists in this repo, and the shipped app does not use it.</p>
+    </div>
+
+    <p>
+      <code>src/imports/</code> is not the dead weight the first audit called it. It contains a
+      token file with a <b>full dark-theme block</b>, a stylesheet of <b>441 component classes</b>
+      carrying every interaction state, a written control specification, and a component inventory
+      mapping each screen to its parts.
+    </p>
+    <p>
+      The shipped app uses <strong>none</strong> of it, rendering 1,078 inline <code>style={{…}}</code>
+      objects instead. Almost every problem in this report is downstream of that one fact.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th></th><th>Specified in <code>src/imports/</code></th><th>Shipped in <code>src/</code></th></tr></thead>
+        <tbody>
+          <tr><td class="n">Component classes</td><td class="m">441</td><td class="m fail">0 used</td></tr>
+          <tr><td class="n"><code>:hover</code> rules</td><td class="m">42</td><td class="m fail">0 &nbsp;<span style="font-weight:400;color:var(--ink-3)">(JS handlers in ~6 places)</span></td></tr>
+          <tr><td class="n"><code>:active</code> rules</td><td class="m">10</td><td class="m fail">0</td></tr>
+          <tr><td class="n"><code>:disabled</code> rules</td><td class="m">14</td><td class="m fail">0</td></tr>
+          <tr><td class="n"><code>:focus-visible</code> rules</td><td class="m">8</td><td class="m">1 <span style="font-weight:400;color:var(--ink-3)">global</span></td></tr>
+          <tr><td class="n"><code>aria-*</code> selectors</td><td class="m">32</td><td class="m fail">0</td></tr>
+          <tr><td class="n"><code>@media</code> queries</td><td class="m">18</td><td class="m fail">0</td></tr>
+          <tr><td class="n"><code>prefers-reduced-motion</code></td><td class="m">6</td><td class="m fail">0</td></tr>
+          <tr class="sev"><td class="n">Dark theme</td><td class="m">full token block</td><td class="m fail">absent</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <p><strong>This changes the remediation.</strong> The first audit said the dark palette needed authoring and the interaction states needed designing. They don't. They need <em>porting</em>.</p>
+    </div>
+  </section>
+
+  <!-- ══ CONFORMANCE ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>1 &middot; Design system conformance</h2>
+      <p>Where the shipped token layer diverges from the system it was copied from, and how loosely the app holds its own scales.</p>
+    </div>
+
+    <h3>1.1 &nbsp;The token file was copied, then degraded</h3>
+    <p><code>src/index.css</code> is a partial copy of <code>src/imports/tokens.css</code>. Comparing the light <code>:root</code> blocks:</p>
+
+    <h4>Dropped from the shipped app</h4>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Token</th><th>Value</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr><td class="m n">--fl-fifth</td><td class="m">#ffffff</td><td class="d"><code>Fretboard.tsx</code> hardcodes the value in <code>TONE_FILL</code> instead</td></tr>
+          <tr><td class="m n">--fl-z-sticky</td><td class="m">20</td><td class="d">z-index is improvised &mdash; see 1.3</td></tr>
+          <tr><td class="m n">--fl-z-toast</td><td class="m">80</td><td class="d"></td></tr>
+          <tr class="sev"><td class="m n">entire dark block</td><td class="m">prefers-color-scheme</td><td class="d">the theme switcher has nothing to switch to</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>Value drift</h4>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Token</th><th>Design system</th><th>Shipped</th></tr></thead>
+        <tbody>
+          <tr><td class="m n">--fl-font</td><td class="m">"Lexend", <b>"Atkinson Hyperlegible"</b>, system-ui&hellip;</td><td class="m">"Lexend", system-ui&hellip;</td></tr>
+          <tr><td class="m n">--fl-font-mono</td><td class="m">"JetBrains Mono", ui-monospace, <b>SFMono-Regular</b>&hellip;</td><td class="m">"JetBrains Mono", ui-monospace&hellip;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Losing <b>Atkinson Hyperlegible</b> matters more than it looks. It is a typeface designed
+      specifically for low-vision legibility, and it was the deliberate second choice behind Lexend,
+      itself chosen for reading proficiency. A learning app dropped both of its
+      accessibility-motivated fallbacks silently.
+    </p>
+
+    <h3>1.2 &nbsp;Scale discipline is weak</h3>
+    <p>The token file defines tight scales. The app improvises around them.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Scale</th><th>Steps defined</th><th class="r">Distinct literals used</th><th class="r">Token uses</th></tr></thead>
+        <tbody>
+          <tr class="sev"><td class="n">Type</td><td class="m">6 &nbsp;<span style="color:var(--ink-3)">2.55 / 1.9 / 1.35 / 0.95 / 0.82 / 0.7 rem</span></td><td class="r fail">41</td><td class="r">149</td></tr>
+          <tr><td class="n">Radius</td><td class="m">6 &nbsp;<span style="color:var(--ink-3)">4 / 8 / 12 / 16 / 22 / 999</span></td><td class="r fail">11</td><td class="r">201</td></tr>
+          <tr><td class="n">Motion</td><td class="m">2 &nbsp;<span style="color:var(--ink-3)">140ms fast, 240ms base</span></td><td class="r fail">15</td><td class="r fail">0</td></tr>
+          <tr><td class="n">Spacing</td><td class="m" style="color:var(--ink-3)">none defined</td><td class="r fail">20 gaps</td><td class="r">&mdash;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      The 41 font sizes include <code>0.62</code>, <code>0.63</code>, <code>0.64</code>,
+      <code>0.65</code>, <code>0.66</code>, <code>0.67</code>, <code>0.68</code> and
+      <code>0.7rem</code> &mdash; <b>eight steps inside a 0.08rem band</b>, below the threshold anyone
+      can perceive as intentional hierarchy. It reads as drift, and it is the main reason the
+      interface feels slightly unresolved at small sizes despite the strong palette.
+    </p>
+    <p>
+      <code>--fl-motion-fast</code> and <code>--fl-motion-base</code> are defined and used
+      <b>zero</b> times; 15 hand-picked durations from 60ms to 700ms appear instead, so related
+      interactions animate at unrelated speeds.
+    </p>
+
+    <h3>1.3 &nbsp;Color and z-index bypass the system</h3>
+    <ul class="plain">
+      <li><b>183 raw hex literals</b> across 35 distinct values in pages and components.</li>
+      <li>Several are exact duplicates of existing tokens: <code>#6152d9</code> is <code>--fl-accent</code> (10 uses), <code>#b7abf7</code> is <code>--fl-root</code> (21 uses), <code>#3fa87a</code> is <code>--fl-live</code> (17 uses), <code>#8b7cec</code> is <code>--fl-third</code> (6 uses).</li>
+      <li><b>Twelve z-index values with no scale</b> &mdash; <code>0, 1, 20, 20, 99, 100, 200, 9999, 9999, 10000, 99999</code>. <code>controls.tsx</code> alone escalates 9999 &rarr; 10000 &rarr; 99999, while the two defined z tokens go unused.</li>
+    </ul>
+  </section>
+
+  <!-- ══ SCREENS ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>2 &middot; Screen by screen</h2>
+      <p>Captured at 1440&times;1150 against the running app.</p>
+    </div>
+
+    <h3>2.1 &nbsp;Practice Studio &nbsp;<code>/</code></h3>
+    <figure>
+      <span class="shot"><img src="ui-audit/home.png" alt="FretLab Practice Studio at 1440px: dark hero with greeting and stats above a cream content area with a heatmap card, warm-up cards and a right rail."></span>
+      <figcaption>The hero has real presence. Below it, the practice-history card is roughly 68% empty.</figcaption>
+    </figure>
+    <p><b>Works:</b> the mono stat row at 1.8rem is confident. The routine checklist, week strip and level card form a coherent right rail.</p>
+    <ol class="find">
+      <li><b>The hero ends on a hard horizontal edge.</b> No gradient, shadow or overlap resolves the dark band against the cream canvas, so the page reads as two documents stacked.</li>
+      <li><b>The practice-history card is mostly empty.</b> The card runs the full ~710px content width; the heatmap inside occupies ~220px, flushed left. Either the cells scale up or the card shrinks to its content.</li>
+      <li><b>Two competing primary buttons are visible at once</b> &mdash; "Quick train" in the top bar and "Start today's session" in the hero, both solid accent. The control spec is explicit: <em>"primary is reserved for the next or highest-confidence action."</em> Only one can be.</li>
+      <li><b>Warm-up card rows don't share a baseline.</b> Cards size to content, so a one-line description lifts that card's BPM chip row above its neighbours'.</li>
+      <li><b>The four hero stats use four unrelated colors</b> with no semantic meaning. Color spent as decoration leaves nothing for real state.</li>
+      <li><b>"2 of 5 tasks done" sits at 1.94:1</b> on the dark hero. Effectively invisible.</li>
+      <li><b>The sidebar's 01&ndash;06 numerals imply a sequence that does not exist.</b> Navigation is not a process; numbering it is structure used as ornament.</li>
+    </ol>
+
+    <h3>2.2 &nbsp;Library &nbsp;<code>/library</code></h3>
+    <figure>
+      <span class="shot"><img src="ui-audit/library.png" alt="FretLab Library chord grid: sixteen chord cards in five columns with quality badges, and a large empty detail panel on the right."></span>
+      <figcaption>Eight of the sixteen diagrams shown render a false "2fr" marker instead of a nut.</figcaption>
+    </figure>
+    <ol class="find">
+      <li><b>Chord diagrams lose the nut on any open chord whose lowest fretted note is above fret 1.</b> <code>ChordDiagram</code> computes <code>baseFret = min(positives)</code> and draws the nut only when <code>baseFret === 1</code>. So <b>G, Em, D, A, Bm, Asus2, Dsus4 and Caug</b> &mdash; 8 of the 16 shown &mdash; render a misleading position marker and no nut, as if they were movable shapes high on the neck. This is separate from the seven wrong fret arrays in the code audit.</li>
+      <li><b>An orphaned card sits alone on the last row.</b> 16 chords in a 5-column grid leaves one. Pick a column count the collection fills.</li>
+      <li><b>Roughly 700px of vertical dead space</b> under the detail panel, which is 320&times;110 in a column running the full page height.</li>
+      <li><b>Three different selection treatments on one screen</b> &mdash; folder tabs, filter pills and card selection. The control spec distinguishes these deliberately, but on screen they read as three unrelated languages.</li>
+      <li><b>Finger numbers inside the dots are near-illegible</b> &mdash; dark text at ~7px on saturated fills.</li>
+      <li><b>Within-card alignment is inconsistent:</b> chord name left-aligned, formula centered.</li>
+    </ol>
+
+    <h3>2.3 &nbsp;Tab Studio &nbsp;<code>/tab</code></h3>
+    <figure>
+      <span class="shot"><img src="ui-audit/tab.png" alt="FretLab Tab Studio: global sidebar, song list column, dark song hero with cover art, ASCII tab in a card, and a right info rail."></span>
+      <figcaption>706px of fixed chrome at 1440px, and the tab itself is the smallest text on the page.</figcaption>
+    </figure>
+    <ol class="find">
+      <li><b>Chrome overwhelms content.</b> Global nav 224px + song list 286px + right rail 196px = 706px of fixed furniture, leaving the tab ~650px, less than half the window.</li>
+      <li><b>The tab is the smallest text on the page</b> &mdash; 0.78rem mono against 0.8&ndash;0.92rem UI text. It is the reason the page exists and should be the most legible thing on it.</li>
+      <li><b>The same cover photo appears twice</b>, as hero background and again in the right rail ~400px away.</li>
+      <li><b>The hero image is over-darkened</b> past the point of reading as an image, while still costing a full-width fetch.</li>
+      <li><b>"Print" is a light button floating on unpredictable photography.</b> Its contrast depends on whichever cover art loads.</li>
+      <li><b>The import placeholder is clipped mid-word</b> &mdash; two 11px platform icons sit at <code>left: 8</code> against a <code>paddingLeft: 28</code>, leaving ~3px of clearance.</li>
+      <li><b>~350px of dead canvas</b> below the notation legend &mdash; which documents glyphs the parser silently discards.</li>
+    </ol>
+
+    <h3>2.4 &nbsp;Theory Studio &nbsp;<code>/theory</code></h3>
+    <figure>
+      <span class="shot"><img src="ui-audit/theory.png" alt="FretLab Theory Studio: pastel circle of fifths on the left, selected key panel, neighbouring keys and a list of common progressions on the right."></span>
+      <figcaption>The circle of fifths is the best-executed component in the product, in a palette that belongs to a different one.</figcaption>
+    </figure>
+    <p><b>Works:</b> clear ring hierarchy, readable at every radius, correct relative-minor placement. The degree chips and neighbouring-key row are both well judged.</p>
+    <ol class="find">
+      <li><b>The circle's palette belongs to a different product.</b> Wedge fills run a full 360&deg; hue rotation while the rest of the app is violet-on-cream. The intent &mdash; key identity as hue &mdash; is sound and documented, but nothing else in the app carries the key hue, so it reads as an imported rainbow rather than a system.</li>
+      <li><b>~440px of dead space</b> below the circle, which sits in a <code>1fr</code> column sized for a much taller sibling.</li>
+      <li><b>Six identical quiet "Play" buttons stack in a column</b>, all inert. Repetition at that density turns a control into visual noise.</li>
+      <li><b>Neighbouring keys use the app's disabled surface</b> for the two side cards, so they read as unavailable rather than adjacent.</li>
+      <li><b>Hero heights are inconsistent across routes</b> &mdash; Practice ~440px, Library ~250px, Theory ~250px, Tab ~200px, Profile none. Navigating makes the layout jump.</li>
+    </ol>
+
+    <h3>2.5 &nbsp;Tuner &nbsp;<code>/tuner</code></h3>
+    <figure>
+      <span class="shot"><img src="ui-audit/tuner.png" alt="FretLab Tuner: dark page with a mis-rendered circular gauge, needle pointing up-left, scale arc drawn only on the right side, and three overlapping text elements at the centre."></span>
+      <figcaption>The needle and the scale it points at are in different coordinate systems. Three text elements collide in one 60px band.</figcaption>
+    </figure>
+    <div class="note alarm">
+      <p><strong>This is the most visually broken screen in the app, and only looking at it reveals it.</strong> Reading the source finds the fake pitch detection; it does not find the mis-rendered dial.</p>
+    </div>
+    <ol class="find">
+      <li><b>The gauge geometry is wrong.</b> The needle is drawn from centre pointing up-left while the scale arc renders as a partial ring on the right side only. <code>arcPath</code> applies <code>toRad(d - 90)</code> to an argument already offset by <code>+90</code>, double-rotating the arc out of the needle's frame.</li>
+      <li><b>"0&cent;" is labelled twice</b>, at two different positions on the ring.</li>
+      <li><b>Three text elements overlap</b> &mdash; the "455 Hz" readout, the demo-mode pill, and a tick label all collide.</li>
+      <li><b>The level meter runs underneath the demo-mode pill.</b></li>
+      <li><b>The note letter and octave are mis-positioned</b> &mdash; "C" sits left of centre with "4" floating away from it, and the needle passes through the glyph.</li>
+      <li><b>Two controls do the same job, simultaneously visible</b> &mdash; the string chip row and the "String reference" list are both string selectors.</li>
+      <li><b>~60% of the page is empty</b>, all of it lower-left.</li>
+      <li><b>It is the only fully dark route.</b> The control spec states the direction is light-first, with cinematic contrast <em>contained inside</em> instrument surfaces. Here the instrument surface has eaten the page.</li>
+    </ol>
+    <p>
+      One thing this screen does right that the earlier read missed: it <b>already discloses demo
+      mode</b> in that pill. The disclosure exists. It is just illegible because three elements are
+      stacked on top of it.
+    </p>
+
+    <h3>2.6 &nbsp;Profile &nbsp;<code>/profile</code></h3>
+    <figure>
+      <span class="shot"><img src="ui-audit/profile.png" alt="FretLab Profile: dark hero with avatar and four stats, level card, weekly challenges, league leaderboard, and a contribution graph with its own summary statistics."></span>
+      <figcaption>The hero reads 14d streak and 147h. The card directly below reads 18d and 261h 16m.</figcaption>
+    </figure>
+    <div class="note alarm">
+      <p><strong>The page contradicts itself in two places visible at once.</strong> The hero reads <b>14d streak &middot; 147h total hours &middot; 312 exercises</b>. The Practice Activity card immediately below reads <b>18d current streak &middot; 261h 16m total practice &middot; 266 total sessions</b>.</p>
+      <p>The first set is hardcoded JSX; the second is <code>Math.random()</code> at mount. A user sees two different truths about their own practice without scrolling.</p>
+    </div>
+    <ol class="find">
+      <li><b>A hard-edged rectangle artifact sits behind the hero stats.</b> The decorative bloom is a 400px circle at <code>opacity: 0.08</code> positioned outside its container's bounds inside <code>overflow: hidden</code>, so it clips to a visible rectangle instead of reading as a soft glow.</li>
+      <li><b>Weekly Challenge cards have unequal heights.</b> The completed card carries a "Complete" line where others carry a count, so row 2 is taller than row 1.</li>
+      <li><b>The level progress bar is effectively invisible</b> &mdash; a thin track on dark with a very small fill.</li>
+      <li><b>Promotion and relegation dividers are nearly imperceptible</b> &mdash; 1px dashed at low alpha.</li>
+      <li><b>Emoji stand in for iconography</b> alongside an otherwise custom SVG icon set. They render inconsistently across platforms and are the one visual choice here that reads as template rather than design.</li>
+      <li><b>Accent is applied arbitrarily</b> in the stat row: of four figures, only one is colored.</li>
+    </ol>
+  </section>
+
+  <!-- ══ RESPONSIVE ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>3 &middot; Responsive</h2>
+      <p>Zero <code>@media</code> queries in 10,390 lines, against 18 in the design system. This is not degradation, it is absence.</p>
+    </div>
+
+    <div class="pair">
+      <figure>
+        <span class="shot"><img src="ui-audit/m-home.png" alt="FretLab Practice Studio at 390px: the dark sidebar occupies more than half the screen and the greeting is clipped to the word Good."></span>
+        <figcaption>390px &middot; the greeting renders as "Good"</figcaption>
+      </figure>
+      <figure>
+        <span class="shot"><img src="ui-audit/m-tab.png" alt="FretLab Tab Studio at 390px: only the sidebar and a clipped song list are visible; the tab content is entirely off screen."></span>
+        <figcaption>390px &middot; the tab is never visible</figcaption>
+      </figure>
+    </div>
+
+    <p>At <b>390px</b>, the width of the phone most likely to be on a music stand:</p>
+    <ul class="plain">
+      <li>The sidebar is a fixed <code>224px</code> &mdash; <b>57% of the viewport</b> &mdash; and does not collapse.</li>
+      <li>The greeting renders as "<b>Good</b>", clipped mid-phrase.</li>
+      <li>"Practice history" and "Warmups &amp; Fin&hellip;" are both cut off.</li>
+      <li>The primary call to action wraps to three lines inside its pill.</li>
+      <li>The heatmap is clipped at the viewport edge, and the page scrolls horizontally.</li>
+    </ul>
+
+    <div class="note alarm">
+      <p><strong>Tab Studio at 390px is functionally unreachable.</strong> Its layout is a 224px sidebar plus a 286px song list &mdash; <b>510px of fixed columns in a 390px viewport</b>. The tab, the entire purpose of the route, begins at x=510 and is never visible. No scroll affordance reveals it.</p>
+    </div>
+
+    <p>
+      The app template contract already fixes the answer: <code>sm 640 / md 768 / lg 1024 / xl 1280</code>,
+      mobile-first shells, sidebar collapsing to a bottom bar under <code>md</code>. None of it is implemented.
+    </p>
+  </section>
+
+  <!-- ══ A11Y ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>4 &middot; Accessibility</h2>
+      <p>Contrast computed against the actual token values. Nine pairs fail AA for normal text; five fail even the large-text threshold.</p>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Pair</th><th class="r">Ratio</th><th>AA normal</th><th>AA large</th></tr></thead>
+        <tbody>
+          <tr class="sev"><td class="n m">--fl-dark-ink-4 on --fl-dark</td><td class="r fail">1.94:1</td><td class="fail">fail</td><td class="fail">fail</td></tr>
+          <tr class="sev"><td class="n m">--fl-ink-4 on --fl-surface-sunk</td><td class="r fail">2.33:1</td><td class="fail">fail</td><td class="fail">fail</td></tr>
+          <tr class="sev"><td class="n m">--fl-ink-4 on --fl-canvas</td><td class="r fail">2.44:1</td><td class="fail">fail</td><td class="fail">fail</td></tr>
+          <tr class="sev"><td class="n m">--fl-ink-4 on --fl-surface</td><td class="r fail">2.63:1</td><td class="fail">fail</td><td class="fail">fail</td></tr>
+          <tr class="sev"><td class="n m">--fl-warn on --fl-surface</td><td class="r fail">2.89:1</td><td class="fail">fail</td><td class="fail">fail</td></tr>
+          <tr class="sev"><td class="n m">--fl-live on --fl-surface</td><td class="r fail">2.91:1</td><td class="fail">fail</td><td class="fail">fail</td></tr>
+          <tr><td class="n m">third-tone label (#fff on --fl-third)</td><td class="r fail">3.39:1</td><td class="fail">fail</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">intermediate badge on its bg</td><td class="r fail">3.87:1</td><td class="fail">fail</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">--fl-ink-3 on --fl-canvas</td><td class="r fail">4.14:1</td><td class="fail">fail</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">--fl-dark-ink-3 on --fl-dark</td><td class="r fail">4.19:1</td><td class="fail">fail</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">--fl-ink-3 on --fl-surface</td><td class="r fail">4.48:1</td><td class="fail">fail</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">--fl-success on --fl-surface</td><td class="r">4.54:1</td><td class="pass">pass</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">--fl-accent on --fl-surface</td><td class="r">5.56:1</td><td class="pass">pass</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">#fff on --fl-accent</td><td class="r">5.65:1</td><td class="pass">pass</td><td class="pass">pass</td></tr>
+          <tr><td class="n m">--fl-ink on --fl-surface</td><td class="r">17.02:1</td><td class="pass">pass</td><td class="pass">pass</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The two that matter most:</p>
+    <ul class="plain">
+      <li><b><code>--fl-ink-4</code> is the app's metadata color</b> &mdash; fret numbers, counts, durations, timestamps, the heatmap legend, "16 weeks &middot; 312 sessions". It fails on every surface it is used on, by a wide margin. It needs to darken to roughly <code>#6f6a7b</code> to clear 4.5:1 on <code>--fl-surface</code>.</li>
+      <li><b><code>--fl-live</code> at 2.91:1</b> is used both as a status dot <em>and</em> as text (17 hardcoded occurrences). As a dot it is acceptable; as text it is not. <code>--fl-success</code> at 4.54:1 already exists and should carry the text role.</li>
+    </ul>
+
+    <h3>Semantics and keyboard</h3>
+    <p>
+      The design system's accessibility checklist specifies keyboard-addressable fretboard markers,
+      roving focus in pill groups, arrow-key navigation in the heatmap, live announcements for tuner
+      and stepper readouts, and selection encoded by shape and boundary in addition to color. The
+      shipped app implements essentially none of it:
+    </p>
+    <ul class="plain">
+      <li><b>Clickable <code>&lt;div&gt;</code>s</b> carry the primary interaction on warm-up cards, exercise rows, lesson rows and song cards. Not focusable, not <code>Enter</code>-activatable, not announced as controls.</li>
+      <li><b>One focus style for the entire app</b>, against the system's 8 component-specific treatments.</li>
+      <li><b>No <code>aria-expanded</code></b> on any expand/collapse card, of which there are four kinds.</li>
+      <li><b>Selection is color-only</b> in several places, against the spec's explicit <em>"never color alone"</em>.</li>
+      <li><b>No <code>prefers-reduced-motion</code> handling</b>, against 6 rules in the system, while the app animates a playhead, a needle, a metronome pulse, progress rings, streaming text and a slide-in panel.</li>
+    </ul>
+
+    <h3>Touch targets</h3>
+    <p>
+      Several controls fall below the 44px minimum: heatmap cells are <b>11px</b>, the sidebar
+      settings control <b>28px</b>, the AI panel close button <b>28px</b>, quick-tempo chips ~24px
+      tall. The control system specifies 32 / 40 / 48px heights and none of these conform.
+    </p>
+  </section>
+
+  <!-- ══ INTERACTION ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>5 &middot; Interaction, motion and architecture</h2>
+    </div>
+
+    <h3>Interaction and motion</h3>
+    <ol class="find">
+      <li><b>Hover exists in six places and is implemented in JavaScript.</b> Handlers mutate <code>style.background</code> directly. Everywhere else there is no hover state, because an inline style object cannot express one. This is the clearest reason the interface feels inert under the cursor.</li>
+      <li><b>No <code>:active</code> state anywhere</b>, against the spec's 0.97 scale on press.</li>
+      <li><b>No disabled styling</b>, despite 14 <code>:disabled</code> rules in the system and the attribute being used in the app.</li>
+      <li><b>No loading or pending states.</b> The only "loading" is an artificial 800ms timeout in the song importer.</li>
+      <li><b>The metronome pulse runs on wall-clock <code>setInterval</code></b>, so the visual beat drifts away from any audible reference within a minute.</li>
+    </ol>
+
+    <h3>Information architecture</h3>
+    <ol class="find">
+      <li><b>The top bar is largely non-functional furniture.</b> The key badge permanently reads "C major" with a dropdown chevron but is not a control. "Quick train" has no handler. The centre pill duplicates the breadcrumb already at the left, so the page name appears twice in one 52px band.</li>
+      <li><b>Sidebar "Explore" rows are hover-styled but unclickable</b>, and their counts match nothing the app contains.</li>
+      <li><b>Drills live only on the dashboard</b>, though the product's own feature list places them in the Library &mdash; which has three tabs where the spec describes four.</li>
+      <li><b>Library and Tab Studio both list songs</b>, from two separate hardcoded arrays, with no navigation between them. Library's "View tab" does not go to the tab.</li>
+    </ol>
+
+    <h3>Content and copy</h3>
+    <ul class="plain">
+      <li><b>Em dashes appear throughout shipped copy</b> &mdash; against an explicit prohibition in the contract's copy rules.</li>
+      <li><b>All-caps labels</b> are used widely via <code>textTransform: uppercase</code>. Some are decorative typography and defensible; the ones acting as field labels are not.</li>
+      <li><b>Copy asserts things that are not true</b>: "Your 14-day streak is alive", "Music theory assistant", "IN TUNE" with the microphone closed, "2.4 GB / 10 GB".</li>
+      <li>Button verbs are mostly good, but confirmations don't reuse them because there are no confirmations.</li>
+      <li><code>"Voicing coming soon"</code> is the only place the app admits an absence, and it does it well.</li>
+    </ul>
+  </section>
+
+  <!-- ══ PRIORITY ══ -->
+  <section>
+    <div class="sec-head">
+      <h2>6 &middot; What to fix, in order</h2>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th class="r">#</th><th>Fix</th><th>Why it's there</th><th>Task</th></tr></thead>
+        <tbody>
+          <tr><td class="r">1</td><td class="n">Port the design system rather than rebuild it</td><td class="d">441 classes, every interaction state and the dark theme already exist and are written</td><td class="m">P6-02, P6-03</td></tr>
+          <tr><td class="r">2</td><td class="n">Responsive shell</td><td class="d">Tab Studio is unreachable on a phone; the sidebar eats 57% of a 390px viewport</td><td class="m">P6-06</td></tr>
+          <tr><td class="r">3</td><td class="n">Fix the tuner's gauge geometry</td><td class="d">Overlapping text and a mis-rendered dial on a page that also reports false readings</td><td class="m">P0-13, P5-03</td></tr>
+          <tr><td class="r">4</td><td class="n">Resolve the Profile data contradiction</td><td class="d">Two different streaks and two hour totals on one screen</td><td class="m">P0-09, P0-10, P4-03</td></tr>
+          <tr><td class="r">5</td><td class="n">Fix ChordDiagram's nut handling</td><td class="d">8 of 16 open chords render as movable shapes with a false position marker</td><td class="m fail">new</td></tr>
+          <tr><td class="r">6</td><td class="n">Darken --fl-ink-4, retire --fl-live as text</td><td class="d">The app's metadata color fails AA on every surface it uses</td><td class="m">P9-07</td></tr>
+          <tr><td class="r">7</td><td class="n">Real controls, real focus, aria-expanded</td><td class="d">Card lists are unreachable by keyboard</td><td class="m">P6-08</td></tr>
+          <tr><td class="r">8</td><td class="n">One primary per view; retire decorative color</td><td class="d">Two competing primaries; four meaningless stat colors</td><td class="m">P6-11</td></tr>
+          <tr><td class="r">9</td><td class="n">Adopt the scales, and define a spacing scale</td><td class="d">41 font sizes, 20 gaps, 15 durations, 183 raw hex</td><td class="m">P6-02</td></tr>
+          <tr><td class="r">10</td><td class="n">Replace emoji iconography with the SVG set</td><td class="d">The one choice that reads as template</td><td class="m">P6-02</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Backlog changes this audit implies</h3>
+    <ul class="plain">
+      <li><b><code>P0-07</code> reframed.</b> It currently treats <code>src/imports/</code> as dead weight to move aside. It should instead extract <code>tokens.css</code>, <code>fretlab-ui.css</code>, <code>CONTROL-SYSTEM.md</code> and <code>README.md</code> to <code>packages/design-system/</code> as the <b>system of record</b>, discarding only the three prebuilt gallery HTML files and the screenshot. The "move rather than delete" instinct was right; the framing was wrong.</li>
+      <li><b><code>P6-03</code> is much cheaper than scoped.</b> It assumes the dark palette must be authored. It exists and needs porting plus the theme-attribute wiring.</li>
+      <li><b>New task needed: fix <code>ChordDiagram</code> nut rendering.</b> Derive "is open position" from the presence of open strings, not from the minimum fretted value. Slot it in Phase 0 beside P0-01.</li>
+    </ul>
+  </section>
+
+  <!-- ══ GOOD ══ -->
+  <section>
+    <div class="good">
+      <h3>What's genuinely good</h3>
+      <p style="font-size:.86rem;color:var(--ink-2);margin-bottom:12px;">Worth protecting through the migration.</p>
+      <ul>
+        <li><b>The circle of fifths.</b> Correct, legible, well-proportioned, and the hue-per-key idea is a real system rather than decoration. It just needs the rest of the app to carry it.</li>
+        <li><b>The contribution graph.</b> Dense, readable, correct cell sizing, good legend.</li>
+        <li><b>The score view's piano roll.</b> The strongest drawing work in the product.</li>
+        <li><b>Lexend + JetBrains Mono.</b> A defensible, non-obvious pairing for a learning tool. Restore the Atkinson Hyperlegible fallback.</li>
+        <li><b>The cream and violet palette with dark instrument surfaces.</b> A genuine identity, and the right instinct: chrome is paper, instruments are lit. The tuner is the only place that inverts it, and that looks like an accident rather than a decision.</li>
+        <li><b>The AI panel's provenance line.</b> "Verify before use in performance or teaching" is honest, specific and correctly placed. Keep the pattern when the panel becomes real.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    FretLab v3 &middot; audited 13 Sep 2026 against the running app at 1440&times;1150 and 390&times;844 &middot; companion to AUDIT.md and TASKS.md
+  </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 14px system-ui, -apple-system, sans-serif; background: #faf9f7; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>FretLab Remediation Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --canvas:#f7f4ed; --surface:#fffdf9; --sunk:#f3efe6;
+    --line:#e7e1d5; --line-soft:#f0ebe1;
+    --ink:#1b1a1f; --ink-2:#4a4753; --ink-3:#6f6a7b; --ink-4:#8a8593;
+    --accent:#6152d9; --accent-ink:#3d33a3; --accent-softer:#efecfd; --accent-line:#cdc4f6;
+    --dark:#17161b;
+    --ok:#27845f; --ok-bg:#e2f4ec; --ok-line:#b5ddcb;
+    --warn:#b4632b; --warn-bg:#fbeee1; --warn-line:#eccfaf;
+    --bad:#a33b57; --bad-bg:#fbe6ec; --bad-line:#eec2ce;
+    --font:"Lexend",system-ui,-apple-system,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas:#131217; --surface:#1c1b21; --sunk:#232228;
+      --line:#302e38; --line-soft:#272630;
+      --ink:#f4f2f7; --ink-2:#c5c1ce; --ink-3:#9d98a8; --ink-4:#7d7788;
+      --accent:#a396f5; --accent-ink:#c3b9fa; --accent-softer:#262148; --accent-line:#453c7d;
+      --dark:#0e0d12;
+      --ok:#56b98d; --ok-bg:#16302a; --ok-line:#2a5a48;
+      --warn:#d79355; --warn-bg:#33251a; --warn-line:#5c4227;
+      --bad:#d9788f; --bad-bg:#331c25; --bad-line:#5c3241;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas:#131217; --surface:#1c1b21; --sunk:#232228;
+    --line:#302e38; --line-soft:#272630;
+    --ink:#f4f2f7; --ink-2:#c5c1ce; --ink-3:#9d98a8; --ink-4:#7d7788;
+    --accent:#a396f5; --accent-ink:#c3b9fa; --accent-softer:#262148; --accent-line:#453c7d;
+    --dark:#0e0d12;
+    --ok:#56b98d; --ok-bg:#16302a; --ok-line:#2a5a48;
+    --warn:#d79355; --warn-bg:#33251a; --warn-line:#5c4227;
+    --bad:#d9788f; --bad-bg:#331c25; --bad-line:#5c3241;
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--canvas); color:var(--ink); font-family:var(--font); font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:940px; margin:0 auto; padding-inline:22px; padding-block:0 80px; }
+
+  .mast { background:var(--dark); margin-inline:-22px; padding:42px 22px 34px; position:relative; overflow:hidden; margin-bottom:32px; }
+  .mast::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.05;
+    background:repeating-linear-gradient(90deg,#fff 0 1px,transparent 1px 74px),repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 30px); }
+  .mast-in { position:relative; max-width:896px; margin:0 auto; }
+  .eyebrow { font-family:var(--mono); font-size:.65rem; letter-spacing:.18em; text-transform:uppercase; color:rgba(255,255,255,.42); }
+  h1 { margin:10px 0 12px; font-size:clamp(1.9rem,5.6vw,2.7rem); font-weight:800; letter-spacing:-.035em; line-height:1.05; color:#fff; text-wrap:balance; }
+  .dek { margin:0 0 24px; max-width:58ch; color:rgba(255,255,255,.58); font-size:.97rem; }
+  .vitals { display:flex; flex-wrap:wrap; }
+  .vital { padding:12px 22px 12px 0; margin-right:22px; border-right:1px solid rgba(255,255,255,.1); }
+  .vital:last-child { border-right:none; margin-right:0; }
+  .vital b { display:block; font-family:var(--mono); font-size:1.45rem; font-weight:700; letter-spacing:-.03em; line-height:1; color:#fff; font-variant-numeric:tabular-nums; }
+  .vital span { display:block; margin-top:5px; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.38); }
+  .vital.good b { color:#7fd2ab; }
+
+  section { margin-bottom:48px; }
+  h2 { margin:0 0 6px; font-size:1.4rem; font-weight:700; letter-spacing:-.025em; }
+  .sec-head { border-bottom:2px solid var(--ink); padding-bottom:9px; margin-bottom:20px; }
+  .sec-head p { margin:5px 0 0; color:var(--ink-3); font-size:.88rem; max-width:66ch; }
+  p { margin:0 0 12px; max-width:70ch; }
+  code { font-family:var(--mono); font-size:.86em; background:var(--sunk); padding:1px 5px; border-radius:5px; color:var(--ink-2); }
+  a { color:var(--accent-ink); }
+
+  .note { border-left:3px solid var(--accent); background:var(--accent-softer); padding:15px 19px; border-radius:0 12px 12px 0; margin-bottom:20px; }
+  .note p { margin:0; font-size:.88rem; color:var(--ink-2); }
+  .note p + p { margin-top:9px; }
+  .note strong { color:var(--accent-ink); }
+
+  .scroll { overflow-x:auto; margin-bottom:18px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:.84rem; }
+  th { text-align:left; font-family:var(--mono); font-size:.62rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); padding:10px 13px; background:var(--sunk); border-bottom:1px solid var(--line); white-space:nowrap; }
+  td { padding:8px 13px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td.m { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--ink-2); }
+  td.n { font-weight:600; color:var(--ink); }
+  td.d { color:var(--ink-3); }
+  td.c { text-align:center; }
+
+  .sev { display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; border-radius:5px; font-family:var(--mono); font-size:.66rem; font-weight:700; }
+  .s-C { background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad-line); }
+  .s-H { background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn-line); }
+  .s-M { background:var(--sunk); color:var(--ink-3); border:1px solid var(--line); }
+  .s-L { background:transparent; color:var(--ink-4); border:1px solid var(--line-soft); }
+
+  .phases { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; margin-bottom:20px; }
+  .ph { border:1px solid var(--line); border-radius:12px; background:var(--surface); padding:15px 17px; }
+  .ph-top { display:flex; align-items:baseline; gap:9px; margin-bottom:7px; }
+  .ph-n { font-family:var(--mono); font-size:.64rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--accent-ink); background:var(--accent-softer); border:1px solid var(--accent-line); border-radius:5px; padding:2px 7px; }
+  .ph-c { margin-left:auto; font-family:var(--mono); font-size:.72rem; color:var(--ink-4); font-variant-numeric:tabular-nums; }
+  .ph strong { display:block; font-size:.92rem; letter-spacing:-.01em; margin-bottom:5px; }
+  .ph p { margin:0; font-size:.79rem; color:var(--ink-3); line-height:1.5; }
+
+  .filters { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+  .fbtn { font-family:var(--font); font-size:.75rem; font-weight:600; cursor:pointer; padding:5px 13px; border-radius:999px; color:var(--ink-3); background:var(--surface); border:1.5px solid var(--line); transition:border-color 140ms,background 140ms,color 140ms; }
+  .fbtn:hover { border-color:var(--accent-line); }
+  .fbtn[aria-pressed="true"] { background:var(--accent-softer); border-color:var(--accent-line); color:var(--accent-ink); }
+
+  .chain { font-family:var(--mono); font-size:.75rem; color:var(--accent-ink); background:var(--accent-softer); border:1px solid var(--accent-line); border-radius:8px; padding:9px 12px; margin:8px 0; overflow-x:auto; white-space:nowrap; }
+
+  footer { margin-top:46px; padding-top:17px; border-top:1px solid var(--line); font-family:var(--mono); font-size:.69rem; color:var(--ink-4); letter-spacing:.04em; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+  @media (max-width:560px) { .vital { border-right:none; padding-right:0; margin-right:26px; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mast-in">
+      <div class="eyebrow">Dashboard &middot; plan of record is MASTER-AUDIT.md</div>
+      <h1>FretLab Remediation Dashboard</h1>
+      <p class="dek">
+        An overview of the merged plan. 114 findings from the code and UI audits, every one mapped to
+        one of 143 atomic tasks, built to the app template contract as a MERN stem.
+      </p>
+      <div class="vitals">
+        <div class="vital"><b>114</b><span>findings</span></div>
+        <div class="vital good"><b>0</b><span>uncovered</span></div>
+        <div class="vital"><b>143</b><span>atomic tasks</span></div>
+        <div class="vital"><b>10</b><span>phases</span></div>
+        <div class="vital"><b>121</b><span>contract checks</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="note">
+    <p><strong>Progress is tracked in the repo, not here.</strong> <code>MASTER-AUDIT.md</code> is the single file an agent works from: every task is a checkbox it flips, with a <code>Covers</code> line, a <code>Depends on</code> line, and a <code>Verify</code> step it must run before marking done.</p>
+    <p>This page is the read-only overview. It does not duplicate the task briefs, so it cannot drift from them.</p>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Phase map</h2>
+      <p>Ordered so each phase makes the next cheaper. Two phases contain serial tasks that touch every file.</p>
+    </div>
+    <div class="phases">
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 0</span><span class="ph-c">20</span></div><strong>Correctness and hygiene</strong><p>Stop shipping wrong information, on the current layout. All 20 must merge before P1-01.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 1</span><span class="ph-c">14</span></div><strong>Monorepo and backend</strong><p>Express 5, Mongoose, MongoDB, the wire format. P1-02 takes your connection string.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 2</span><span class="ph-c">12</span></div><strong>Identity</strong><p>The full auth surface with local JWT implemented and the OIDC branch stubbed behind it.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 3</span><span class="ph-c">12</span></div><strong>Data model and domain API</strong><p>Baseline entities plus FretLab's own, with pagination, search and ownership scoping.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 4</span><span class="ph-c">12</span></div><strong>Client integration</strong><p>Every mock and Math.random() replaced by real data, with an offline queue.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 5</span><span class="ph-c">11</span></div><strong>Audio and instrument</strong><p>The app makes sound and listens. Independent of the backend.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 6</span><span class="ph-c">26</span></div><strong>Design system and UI</strong><p>Every UI finding closes here. Two serial tasks touch every file in the web app.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 7</span><span class="ph-c">12</span></div><strong>Gamification</strong><p>Server-authoritative XP, streaks, mastery, leagues and achievements.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 8</span><span class="ph-c">12</span></div><strong>Content library</strong><p>Generated rather than hand-typed, seeded to Mongo, licensed before it scales.</p></div>
+      <div class="ph"><div class="ph-top"><span class="ph-n">Phase 9</span><span class="ph-c">12</span></div><strong>Definition of done</strong><p>Each task maps to one line of the contract's checklist.</p></div>
+    </div>
+
+    <p style="font-size:.88rem;color:var(--ink-2);margin-top:18px;"><strong>Critical path</strong></p>
+    <div class="chain">Phase 0 (all) &rarr; P1-01 &rarr; P1-02 &rarr; P1-03 &rarr; P1-04</div>
+    <div class="chain">P2-01 &rarr; P2-03 &rarr; P2-04 &rarr; P2-08 &nbsp;&middot;&nbsp; identity</div>
+    <div class="chain">P3-03 &rarr; P3-04 &rarr; P4-01 &rarr; P4-03 &nbsp;&middot;&nbsp; domain API to real client data</div>
+    <div class="chain">P1-14 &rarr; P6-01 &rarr; P6-02 &rarr; P6-03 / P6-06 / P6-20 &nbsp;&middot;&nbsp; boundary law, design system</div>
+    <p style="font-size:.86rem;color:var(--ink-3);">
+      <strong style="color:var(--ink);">P1-01, P6-01 and P6-02 are serial</strong> &mdash; each touches every file. Run them alone.
+      Independent of the entire backend once P1-01 lands: <code>P5-01</code> (audio engine) and <code>P1-14</code> (lint config).
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Finding register</h2>
+      <p>Every finding carries an ID and names the task that closes it. Coverage is verified by script &mdash; nothing is orphaned.</p>
+    </div>
+
+    <div class="filters" id="filters"></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th style="width:52px">ID</th><th>Finding</th><th class="c" style="width:44px">Sev</th><th style="width:150px">Closed by</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p style="font-size:.82rem;color:var(--ink-4);font-family:var(--mono);" id="count"></p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>The gate</h2>
+      <p>121 conformance checks across the contract, plus a FretLab-specific set. The plan is not complete until every one is demonstrated in the running app.</p>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Contract section</th><th class="c" style="width:70px">Checks</th><th>Covers</th></tr></thead>
+        <tbody>
+          <tr><td class="n">&sect;1 &mdash; The invariant</td><td class="c m">38</td><td class="d">Identity, account, resource, files, notifications, and the four states on every screen</td></tr>
+          <tr><td class="n">&sect;2 &mdash; Auth contract</td><td class="c m">11</td><td class="d">Dual-mode surface, confidential client, cookie rules, rotation and reuse detection</td></tr>
+          <tr><td class="n">&sect;3 &mdash; Wire format</td><td class="c m">11</td><td class="d">Envelopes, status codes, idempotency, request ids</td></tr>
+          <tr><td class="n">&sect;4 &mdash; Data model</td><td class="c m">9</td><td class="d">Five baseline entities, exact field names, snake_case on the wire, delete semantics</td></tr>
+          <tr><td class="n">&sect;5 &mdash; Architecture law</td><td class="c m">10</td><td class="d">L1/L2/L3, dependency direction, boundary lint at error, file sizing</td></tr>
+          <tr><td class="n">&sect;6 &mdash; HeroUI and theming</td><td class="c m">9</td><td class="d">Import order, semantic tokens, both theme families, breakpoints, bottom bar under md</td></tr>
+          <tr><td class="n">&sect;7 &mdash; Interface copy</td><td class="c m">8</td><td class="d">Outcome verbs, error phrasing, sentence case, no em dashes, no untrue claims</td></tr>
+          <tr><td class="n">&sect;9 &mdash; Definition of done</td><td class="c m">12</td><td class="d">Two-command boot, no external services, tests, responsive, a11y, README, deploy</td></tr>
+          <tr><td class="n">FretLab-specific gate</td><td class="c m">10</td><td class="d">Chord correctness, tuner honesty, no contradictory numbers, the app makes sound, contrast passes, usable on a phone</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>Ten of those are FretLab's own.</strong> They are the findings that make the product untrustworthy rather than merely incomplete: no chord may sound something other than its formula, no screen may show two values for the same fact, and the tuner must either listen or say plainly that it does not.</p>
+    </div>
+  </section>
+
+  <footer>FretLab v3 &middot; 114 findings &middot; 143 tasks &middot; plan of record: MASTER-AUDIT.md &middot; evidence: AUDIT.md, UI-AUDIT.md</footer>
+</div>
+
+<script>
+const F = [
+["C-01","Seven chord frets arrays sound the wrong notes; diagrams render wrong shapes","C","P0-01"],
+["C-02","C7.notes over-declares a 5th the voicing does not sound","M","P0-02"],
+["C-03","No audio anywhere: zero AudioContext, oscillator or audio element","C","P5-01, P5-02, P5-04"],
+["C-04","Tuner is a Math.sin simulation reporting IN TUNE with the mic closed","C","P0-13, P5-03"],
+["C-05","No persistence: every stat resets on refresh","C","P1-02, P1-04, P3-03, P4-01"],
+["C-06","Four TypeScript errors; vite build does not typecheck","H","P0-04…P0-08"],
+["C-07","~40 finished components built and never imported","M","P0-17, P6-04, P6-05, P6-07"],
+["C-08","src/imports is the design system, not dead weight, and is unused","C","P0-07, P6-02, P6-03"],
+["C-09","Songs and scales each defined twice; sidebar counts match nothing","H","P0-15, P8-01, P8-04"],
+["C-10","PracticeGraph range toggle leaves summary stats frozen","M","P0-10, P4-04"],
+["C-11","Dead goals/editingGoal state in Profile","L","P0-11"],
+["C-12","Sixteen controls render as buttons and do nothing","H","P0-12"],
+["C-13","Practice heatmap generated by Math.random() at module scope","H","P0-09, P4-04"],
+["C-14","Hero stats are string literals, including a fabricated 14-day streak","H","P4-03"],
+["C-15","The AI is a seven-entry keyword table","H","P0-14, P5-09"],
+["C-16","AIRequest.context is designed for fretboard context and never set","M","P5-10"],
+["C-17","measuresToAsciiTab never imported; tab edits cannot save or export","H","P4-07, P9-11"],
+["C-18","Score playhead runs at a fixed 80 px/s regardless of BPM","M","P5-05"],
+["C-19","Tab parser silently drops technique glyphs its own legend documents","M","P5-06"],
+["C-20","Tab Generator is a headline feature with no implementation","H","P8-11"],
+["C-21","URL import fabricates a placeholder after a fake 800 ms delay","M","P4-11, P8-11"],
+["C-22","Diatonic chord table hardcoded to C major","M","P6-13"],
+["C-23","Quiz results computed, displayed and discarded","M","P7-09"],
+["C-24","Exercise progress values are hardcoded constants","M","P4-06"],
+["C-25","XP is a constant; nothing mints points","H","P7-01"],
+["C-26","Streak hardcoded to 14","H","P7-02"],
+["C-27","League is seven fictional rows in a client constant","M","P7-06"],
+["C-28","Weekly challenges never increment and never pay out","M","P7-07"],
+["C-29","Achievements are hardcoded earned flags with typed dates","M","P7-08"],
+["C-30","Add goal inert; goals are a constant","M","P7-11"],
+["C-31","Settings flip and reset on navigation","M","P4-08"],
+["C-32","Account panel fabricates plan, renewal date and storage","H","P4-12, P9-10"],
+["C-33","No auth layer; none of the contract's identity flows exist","C","P2-01…P2-12"],
+["C-34","Library scale positions are hand-typed two-string fragments","H","P8-04"],
+["C-35","Library passes props that do not exist on Fretboard","M","P0-04"],
+["C-36","Library View tab does not navigate","M","P0-12"],
+["C-37","No drills tab, though the spec places drills in the Library","M","P8-08"],
+["C-38","Library buildMarkers mislabels the first marker as root","M","P8-04"],
+["C-39","Single 554 kB bundle chunk","L","P6-14"],
+["C-40","No error boundary: one bad object white-screens the app","H","P4-10"],
+["C-41","Song transcriptions carry no licensing metadata","H","P8-12"],
+["C-42","Metronome runs on wall-clock setInterval and drifts audibly","M","P5-02"],
+["U-01","441 component classes specified, 0 used; 1,078 inline style objects","C","P6-02"],
+["U-02","The design system's dark-theme token block was never copied to the app","H","P6-03"],
+["U-03","--fl-fifth and both z-index tokens dropped from the shipped tokens","M","P6-03, P6-21"],
+["U-04","Atkinson Hyperlegible fallback dropped from --fl-font","M","P6-03"],
+["U-05","41 distinct font sizes against a 6-step scale","H","P6-20"],
+["U-06","11 literal border radii alongside 201 token uses","M","P6-20"],
+["U-07","15 motion durations; both motion tokens used zero times","M","P6-20"],
+["U-08","No spacing scale defined anywhere; 20 distinct gap values","H","P6-20"],
+["U-09","183 raw hex literals, several exact duplicates of existing tokens","H","P6-02, P6-20"],
+["U-10","Twelve z-index values escalating to 99999, with no scale","M","P6-21"],
+["U-11","Practice Studio hero ends on an unresolved hard horizontal edge","M","P6-15"],
+["U-12","Practice-history card is ~68% dead space","M","P6-17"],
+["U-13","Two competing solid-accent primary buttons visible at once","H","P6-18"],
+["U-14","Warm-up card rows do not share a baseline","M","P6-16"],
+["U-15","Four hero stats use four unrelated decorative colors","M","P6-18"],
+["U-16","2 of 5 tasks done renders at 1.94:1 on the dark hero","H","P6-03, P9-07"],
+["U-17","Sidebar 01-06 numerals imply a sequence that does not exist","L","P6-18"],
+["U-18","ChordDiagram loses the nut on 8 of 16 open chords","C","P0-18"],
+["U-19","An orphaned chord card sits alone on the last grid row","L","P6-25"],
+["U-20","~700px of vertical dead space beside the Library detail panel","M","P6-25"],
+["U-21","Three different selection treatments on one screen","M","P6-22"],
+["U-22","Finger numbers inside chord dots near-illegible at ~7px","M","P6-25"],
+["U-23","Chord name left-aligned, formula centered, in the same card","L","P6-25"],
+["U-24","706px of fixed chrome leaves the tab under half the window","H","P6-24"],
+["U-25","The tab is the smallest text on the page it exists to serve","H","P6-24"],
+["U-26","The same cover photo renders twice ~400px apart","L","P6-24"],
+["U-27","Song hero image over-darkened past reading as an image","L","P6-24"],
+["U-28","Print is a light button on unpredictable cover photography","M","P6-24"],
+["U-29","Import field placeholder clipped mid-word by overlapping icons","M","P6-24"],
+["U-30","~350px of dead canvas below the notation legend","L","P6-17"],
+["U-31","Circle of fifths palette is a 360° hue rotation disconnected from the app","M","P6-26"],
+["U-32","~440px of dead space below the circle","M","P6-17"],
+["U-33","Six identical quiet inert Play buttons stacked in a column","M","P0-12, P5-04"],
+["U-34","Neighbouring-key cards use the disabled surface, reading as unavailable","M","P6-26"],
+["U-35","Hero heights vary 0-440px across routes, making the layout jump","M","P6-15"],
+["U-36","Tuner gauge geometry double-rotates; needle and scale in different frames","C","P0-19"],
+["U-37","Tuner labels 0¢ twice at two ring positions","H","P0-19"],
+["U-38","Three tuner text elements overlap in one 60px band","C","P0-19"],
+["U-39","Tuner level meter runs underneath the demo-mode pill","H","P0-19"],
+["U-40","Tuner note letter and octave mispositioned; needle passes through the glyph","H","P0-19"],
+["U-41","Two simultaneous string selectors doing the same job","M","P6-23"],
+["U-42","~60% of the tuner page is empty","M","P6-23"],
+["U-43","Tuner is the only fully dark route, against the light-first spec","M","P6-23"],
+["U-44","Profile shows two different streaks and two hour totals on one screen","C","P0-09, P0-10, P4-03"],
+["U-45","Profile decorative bloom clips to a visible hard-edged rectangle","M","P0-20"],
+["U-46","Weekly Challenge cards have unequal heights across rows","M","P6-16"],
+["U-47","Level progress bar is effectively invisible on dark","M","P6-18"],
+["U-48","League promotion and relegation dividers are imperceptible","M","P6-18"],
+["U-49","Emoji stand in for iconography beside a custom SVG set","M","P6-19"],
+["U-50","Accent applied to one of four figures in the stat row, arbitrarily","L","P6-18"],
+["U-51","Zero @media queries in 10,390 lines, against 18 in the design system","C","P6-06"],
+["U-52","Sidebar is a fixed 224px, 57% of a 390px viewport, and never collapses","C","P6-06"],
+["U-53","Tab Studio is functionally unreachable at 390px","C","P6-06, P6-24"],
+["U-54","Nine contrast pairs fail AA for normal text; five fail large-text too","C","P6-03, P9-07"],
+["U-55","--fl-ink-4, the metadata color, fails on every surface it is used on","C","P6-03"],
+["U-56","--fl-live at 2.91:1 used as text in 17 places","H","P6-03"],
+["U-57","Clickable divs carry primary interaction on four kinds of card list","H","P6-08"],
+["U-58","One global focus style against the system's 8 component treatments","M","P6-02, P6-08"],
+["U-59","No aria-expanded on any of four kinds of expand/collapse card","H","P6-08"],
+["U-60","Selection encoded by color alone, against an explicit spec rule","H","P6-22"],
+["U-61","No prefers-reduced-motion handling against 6 rules in the system","H","P6-10"],
+["U-62","Touch targets at 11px, 24px and 28px against a 32/40/48 spec","H","P6-20"],
+["U-63","Hover exists in six places, implemented in JavaScript handlers","H","P6-02"],
+["U-64","No :active state anywhere, against the spec's 0.97 press scale","M","P6-02"],
+["U-65","No disabled styling despite 14 :disabled rules in the system","M","P6-02"],
+["U-66","No loading or pending states; the only one is an 800 ms timeout","H","P4-11"],
+["U-67","Top bar is largely non-functional furniture","M","P0-12, P6-12"],
+["U-68","Breadcrumb and centre pill show the same page name in one 52px band","L","P6-12"],
+["U-69","Sidebar Explore rows hover-styled but unclickable, with wrong counts","M","P0-12, P0-15"],
+["U-70","Em dashes throughout shipped copy, against an explicit prohibition","M","P6-11"],
+["U-71","All-caps labels used widely against sentence case throughout","L","P6-11"],
+["U-72","Copy asserts things that are not true in at least four places","H","P0-13, P0-14, P4-12, P9-10"],
+];
+
+let filter = "all";
+const OPTS = [["all","All"],["C","Critical"],["H","High"],["code","Code"],["ui","UI"]];
+
+function matches(f) {
+  if (filter === "all") return true;
+  if (filter === "code") return f[0][0] === "C";
+  if (filter === "ui") return f[0][0] === "U";
+  return f[2] === filter;
+}
+
+function render() {
+  const fb = document.getElementById("filters");
+  fb.innerHTML = OPTS.map(([k, l]) =>
+    `<button class="fbtn" type="button" data-f="${k}" aria-pressed="${filter === k}">${l}</button>`).join("");
+  fb.querySelectorAll(".fbtn").forEach(b =>
+    b.addEventListener("click", () => { filter = b.dataset.f; render(); }));
+
+  const shown = F.filter(matches);
+  document.getElementById("rows").innerHTML = shown.map(f =>
+    `<tr><td class="m n">${f[0]}</td><td class="d">${f[1]}</td>` +
+    `<td class="c"><span class="sev s-${f[2]}">${f[2]}</span></td>` +
+    `<td class="m">${f[3]}</td></tr>`).join("");
+
+  const crit = shown.filter(f => f[2] === "C").length;
+  document.getElementById("count").textContent =
+    `${shown.length} of ${F.length} findings shown · ${crit} critical · 0 uncovered`;
+}
+render();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "description": "Enhance your guitar skills with a modern practice and music theory app designed for musicians seeking interactive lessons and intuitive navigation.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

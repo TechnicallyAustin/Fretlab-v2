@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 14px system-ui, -apple-system, sans-serif; background: #faf9f7; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<title>FretLab Build Audit</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --canvas: #f7f4ed;
+    --surface: #fffdf9;
+    --sunk: #f3efe6;
+    --line: #e7e1d5;
+    --line-soft: #f0ebe1;
+    --ink: #1b1a1f;
+    --ink-2: #4a4753;
+    --ink-3: #79747f;
+    --ink-4: #a19caa;
+    --accent: #6152d9;
+    --accent-ink: #3d33a3;
+    --accent-soft: #ded8fb;
+    --accent-softer: #efecfd;
+    --accent-line: #cdc4f6;
+    --dark: #17161b;
+    --dark-2: #232228;
+
+    --ok: #27845f;
+    --ok-bg: #e2f4ec;
+    --ok-line: #b5ddcb;
+    --warn: #b4632b;
+    --warn-bg: #fbeee1;
+    --warn-line: #eccfaf;
+    --bad: #a33b57;
+    --bad-bg: #fbe6ec;
+    --bad-line: #eec2ce;
+
+    --font: "Lexend", system-ui, -apple-system, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #131217;
+      --surface: #1c1b21;
+      --sunk: #232228;
+      --line: #302e38;
+      --line-soft: #272630;
+      --ink: #f4f2f7;
+      --ink-2: #c5c1ce;
+      --ink-3: #928d9d;
+      --ink-4: #6f6a7b;
+      --accent: #a396f5;
+      --accent-ink: #c3b9fa;
+      --accent-soft: #332c63;
+      --accent-softer: #262148;
+      --accent-line: #453c7d;
+      --dark: #0e0d12;
+      --dark-2: #1a1920;
+      --ok: #56b98d; --ok-bg: #16302a; --ok-line: #2a5a48;
+      --warn: #d79355; --warn-bg: #33251a; --warn-line: #5c4227;
+      --bad: #d9788f; --bad-bg: #331c25; --bad-line: #5c3241;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #131217;
+    --surface: #1c1b21;
+    --sunk: #232228;
+    --line: #302e38;
+    --line-soft: #272630;
+    --ink: #f4f2f7;
+    --ink-2: #c5c1ce;
+    --ink-3: #928d9d;
+    --ink-4: #6f6a7b;
+    --accent: #a396f5;
+    --accent-ink: #c3b9fa;
+    --accent-soft: #332c63;
+    --accent-softer: #262148;
+    --accent-line: #453c7d;
+    --dark: #0e0d12;
+    --dark-2: #1a1920;
+    --ok: #56b98d; --ok-bg: #16302a; --ok-line: #2a5a48;
+    --warn: #d79355; --warn-bg: #33251a; --warn-line: #5c4227;
+    --bad: #d9788f; --bad-bg: #331c25; --bad-line: #5c3241;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding-inline: 22px; padding-block: 0 90px; }
+
+  /* ── Masthead ─────────────────────────────────────── */
+  .mast {
+    background: var(--dark);
+    margin-inline: -22px;
+    padding: 46px 22px 38px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+  .mast::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .05;
+    background:
+      repeating-linear-gradient(90deg, #fff 0 1px, transparent 1px 74px),
+      repeating-linear-gradient(0deg, #fff 0 1px, transparent 1px 30px);
+  }
+  .mast-inner { position: relative; max-width: 896px; margin: 0 auto; }
+  .eyebrow {
+    font-family: var(--mono); font-size: .66rem; font-weight: 500;
+    letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.4);
+  }
+  h1 {
+    margin: 10px 0 12px; font-size: clamp(2rem, 6vw, 2.9rem); font-weight: 800;
+    letter-spacing: -.035em; line-height: 1.04; color: #fff; text-wrap: balance;
+  }
+  .dek { margin: 0 0 28px; max-width: 58ch; color: rgba(255,255,255,.56); font-size: 1rem; }
+  .vitals { display: flex; flex-wrap: wrap; gap: 0; }
+  .vital { padding: 12px 22px 12px 0; margin-right: 22px; border-right: 1px solid rgba(255,255,255,.1); }
+  .vital:last-child { border-right: none; margin-right: 0; }
+  .vital b {
+    display: block; font-family: var(--mono); font-size: 1.5rem; font-weight: 700;
+    letter-spacing: -.03em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums;
+  }
+  .vital span {
+    display: block; margin-top: 5px; font-size: .64rem; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(255,255,255,.36);
+  }
+  .vital.v-bad b { color: #f0a0b3; }
+  .vital.v-ok b { color: #7fd2ab; }
+
+  /* ── Section rhythm ──────────────────────────────── */
+  section { margin-bottom: 54px; scroll-margin-top: 16px; }
+  h2 {
+    margin: 0 0 6px; font-size: 1.5rem; font-weight: 700;
+    letter-spacing: -.025em; text-wrap: balance;
+  }
+  .sec-head { border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 22px; }
+  .sec-head p { margin: 4px 0 0; color: var(--ink-3); font-size: .9rem; max-width: 62ch; }
+  h3 {
+    margin: 30px 0 12px; font-size: 1rem; font-weight: 700; letter-spacing: -.01em;
+  }
+  h3:first-child { margin-top: 0; }
+  h4 {
+    margin: 0 0 8px; font-family: var(--mono); font-size: .68rem; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+  }
+  p { margin: 0 0 12px; max-width: 68ch; }
+  a { color: var(--accent-ink); }
+  code, .mono { font-family: var(--mono); font-size: .86em; }
+  code { background: var(--sunk); padding: 1px 5px; border-radius: var(--r-sm); color: var(--ink-2); }
+
+  /* ── Status pills ─────────────────────────────────── */
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+    font-size: .64rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .p-ok { color: var(--ok); background: var(--ok-bg); border: 1px solid var(--ok-line); }
+  .p-warn { color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-line); }
+  .p-bad { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); }
+
+  /* ── Feature matrix ───────────────────────────────── */
+  .family { margin-bottom: 16px; border: 1px solid var(--line); border-radius: var(--r-xl); background: var(--surface); overflow: hidden; }
+  .family-head {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    padding: 15px 20px; background: var(--sunk); border-bottom: 1px solid var(--line);
+  }
+  .family-head strong { font-size: .98rem; letter-spacing: -.01em; }
+  .family-head .route { font-family: var(--mono); font-size: .72rem; color: var(--ink-4); }
+  .family-head .fill { margin-left: auto; font-family: var(--mono); font-size: .72rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .feat {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 14px;
+    padding: 13px 20px; border-bottom: 1px solid var(--line-soft);
+  }
+  .feat:last-child { border-bottom: none; }
+  .feat-name { font-weight: 600; font-size: .9rem; }
+  .feat-note { grid-column: 1 / -1; margin: 0; color: var(--ink-3); font-size: .82rem; line-height: 1.55; max-width: 72ch; }
+  .feat-note b { color: var(--ink-2); font-weight: 600; }
+
+  /* ── Defect list ──────────────────────────────────── */
+  .defect {
+    display: grid; grid-template-columns: 34px 1fr; gap: 0 14px;
+    padding: 16px 18px 16px 0; border-bottom: 1px solid var(--line);
+  }
+  .defect:last-child { border-bottom: none; }
+  .d-num {
+    font-family: var(--mono); font-size: .78rem; font-weight: 700;
+    color: var(--bad); padding-top: 1px; font-variant-numeric: tabular-nums;
+  }
+  .defect h4 { font-family: var(--font); font-size: .94rem; font-weight: 700; letter-spacing: -.01em; text-transform: none; color: var(--ink); margin-bottom: 6px; }
+  .defect p { font-size: .87rem; color: var(--ink-2); margin-bottom: 0; }
+  .defect p + p { margin-top: 8px; }
+  .fix { color: var(--ok) !important; font-weight: 500; }
+  .fix b { color: var(--ok); }
+
+  /* ── Tables ───────────────────────────────────────── */
+  .scroll { overflow-x: auto; margin-bottom: 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th {
+    text-align: left; font-family: var(--mono); font-size: .64rem; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+    padding: 11px 14px; background: var(--sunk); border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.m { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+  td.n { font-weight: 600; color: var(--ink); }
+  td.d { color: var(--ink-3); }
+
+  /* ── Callout ──────────────────────────────────────── */
+  .note {
+    border-left: 3px solid var(--accent); background: var(--accent-softer);
+    padding: 14px 18px; border-radius: 0 var(--r-md) var(--r-md) 0; margin-bottom: 18px;
+  }
+  .note p { margin: 0; font-size: .87rem; color: var(--ink-2); }
+  .note p + p { margin-top: 8px; }
+  .note strong { color: var(--accent-ink); }
+
+  /* ── Spec grid ────────────────────────────────────── */
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .spec { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; background: var(--surface); }
+  .spec h4 { color: var(--accent-ink); margin-bottom: 8px; }
+  .spec ul { margin: 0; padding-left: 17px; }
+  .spec li { font-size: .85rem; color: var(--ink-2); margin-bottom: 5px; line-height: 1.5; }
+  .spec li:last-child { margin-bottom: 0; }
+  .spec li b { color: var(--ink); font-weight: 600; }
+
+  ul.plain { margin: 0 0 14px; padding-left: 18px; }
+  ul.plain li { margin-bottom: 7px; color: var(--ink-2); font-size: .89rem; max-width: 68ch; }
+  ul.plain li b { color: var(--ink); }
+
+  /* ── Phase rail ───────────────────────────────────── */
+  .phase { display: grid; grid-template-columns: 88px 1fr; gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .phase:last-child { border-bottom: none; }
+  .phase-tag {
+    font-family: var(--mono); font-size: .68rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent-ink); background: var(--accent-softer);
+    border: 1px solid var(--accent-line); border-radius: var(--r-sm);
+    padding: 4px 0; text-align: center; height: fit-content;
+  }
+  .phase h4 { font-family: var(--font); font-size: .95rem; font-weight: 700; text-transform: none; letter-spacing: -.01em; color: var(--ink); margin-bottom: 6px; }
+  .phase p { font-size: .86rem; color: var(--ink-3); margin: 0; }
+
+  footer {
+    margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: .7rem; color: var(--ink-4); letter-spacing: .04em;
+  }
+
+  @media (max-width: 560px) {
+    .feat { grid-template-columns: 1fr; }
+    .feat .pill { justify-self: start; }
+    .phase { grid-template-columns: 1fr; gap: 8px; }
+    .phase-tag { width: 88px; }
+    .vital { border-right: none; padding-right: 0; margin-right: 26px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="mast-inner">
+      <div class="eyebrow">Codebase audit · 13 Sep 2026</div>
+      <h1>FretLab Build Audit</h1>
+      <p class="dek">
+        Every feature family graded against what actually runs. The design layer is genuinely
+        strong — the product layer underneath it is a demo. Here is the gap, feature by feature,
+        and what closing it costs.
+      </p>
+      <div class="vitals">
+        <div class="vital"><b>10,390</b><span>lines of app code</span></div>
+        <div class="vital v-ok"><b>6</b><span>routes shipping</span></div>
+        <div class="vital v-bad"><b>4</b><span>type errors</span></div>
+        <div class="vital v-bad"><b>8/24</b><span>chords mis-voiced</span></div>
+        <div class="vital v-bad"><b>0</b><span>lines of audio</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ VERDICT ══════════════════════════════════════ -->
+  <section id="verdict">
+    <div class="sec-head">
+      <h2>The one-line verdict</h2>
+      <p>FretLab is a high-fidelity interactive prototype of a guitar SaaS, not yet a guitar SaaS.</p>
+    </div>
+
+    <p>
+      The visual system is well above average — a real token set, a hand-built SVG fretboard,
+      chord diagrams, a circle of fifths, a contribution graph, ten written theory lessons with
+      working quizzes. That is more craft than most side projects ever reach.
+    </p>
+    <p>
+      But three structural facts define everything else in this report:
+      <b>the app makes no sound</b> (zero <code>AudioContext</code>, zero <code>getUserMedia</code>),
+      <b>the app remembers nothing</b> (zero <code>localStorage</code>, zero network calls — every
+      number resets on refresh, and some are literally <code>Math.random()</code>),
+      and <b>the app has no mobile layout</b> (zero <code>@media</code> queries across 10,390 lines).
+    </p>
+    <p>
+      For a practice tool, those three are not polish items. Sound is the product. Memory is the
+      product. A guitarist practices with a phone on a stand. Everything else in this audit is
+      secondary to those.
+    </p>
+
+    <div class="note">
+      <p><strong>Read the grades this way.</strong></p>
+      <p>
+        <span class="pill p-ok">Working</span> means a user gets real value from it today.
+        <span class="pill p-warn">Shell</span> means the UI is finished and the logic behind it is
+        faked or absent. <span class="pill p-bad">Stub</span> means it is visible in the interface
+        and does nothing at all when clicked.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══ FEATURE MATRIX ═══════════════════════════════ -->
+  <section id="matrix">
+    <div class="sec-head">
+      <h2>Feature matrix by family</h2>
+      <p>Your five families, plus the two routes that sit outside them. Percentages are the share of features in that family a user can actually use.</p>
+    </div>
+
+    <!-- Practice Studio -->
+    <div class="family">
+      <div class="family-head">
+        <strong>Practice Studio</strong>
+        <span class="route">/</span>
+        <span class="fill">3 of 9 working · 33%</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Warm-up drill cards</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Six drills with tips, BPM and level. Expanding a card works; <b>“▶ Start” has an empty handler</b> — no timer, no tab, no logging. “Set BPM” works.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Exercises &amp; drills list</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Five exercises with current→target BPM and a progress ring. Progress values are <b>hardcoded constants</b> that never move. “Start drill” is inert.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Today’s routine checklist</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Checkboxes toggle, ring and bar update live. The routine itself is fixed — no way to build, save or reorder one.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Metronome</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Dial, tap-tempo and presets all work visually. It is <b>silent</b>, and it runs on <code>setInterval</code>, which drifts audibly within a minute. Needs Web Audio scheduling.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Practice heatmap</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note"><code>PracticeStudio.tsx:37</code> — the grid is generated by <code>Math.random()</code> at module load. It shows a different practice history on every refresh.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Hero stats (streak, hours, drills, BPM)</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">“14”, “147”, “312”, “68” are string literals in the JSX. So is “Your 14-day streak is alive.”</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Start today’s session</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">The single most important button on the home screen has no <code>onClick</code>. This is the first thing to fix.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Level / league card</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">XP curve maths are real and correct. The XP total feeding them is a constant.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Quick links &amp; tune-up</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Routing works throughout.</p>
+      </div>
+    </div>
+
+    <!-- Tab Studio -->
+    <div class="family">
+      <div class="family-head">
+        <strong>Tab Studio</strong>
+        <span class="route">/tab</span>
+        <span class="fill">4 of 8 working · 50%</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Song library + search + genre filter</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Nine songs, real ASCII tab for each, filtering and search both work.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">ASCII tab parser</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Genuinely good: handles two-digit frets and per-string columns. It <b>drops technique glyphs</b> (<code>h p / \ b ~</code>) — they are documented in the legend but not parsed.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Score view + playhead</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">The piano-roll render is the best visual in the app. But the playhead moves at a <b>fixed 80 px/s regardless of BPM</b>, column position is treated as time, and nothing sounds. It animates rather than plays.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Tab editor (TabStaff)</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Click-to-place notes, durations, techniques, measures — all real, and the nicest piece of engineering here. But <code>measuresToAsciiTab</code> is <b>never imported anywhere</b>, so edits cannot be exported or saved.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">YouTube / Spotify import</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">URL parsing and embeds work. The “import” invents a placeholder named “YouTube Song” after an <code>800 ms</code> fake delay — no title lookup, and no tab is generated.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Tab generator from songs</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Listed as a headline feature; <b>no implementation exists</b>. Imported songs get the text “Tab for this song is not available yet.”</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Print / Practice buttons</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Both render, neither has a handler.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Chord diagrams per song</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Works, but several songs reference chords absent from the library and fall through to a dashed “Voicing coming soon” tile.</p>
+      </div>
+    </div>
+
+    <!-- Library -->
+    <div class="family">
+      <div class="family-head">
+        <strong>Library</strong>
+        <span class="route">/library</span>
+        <span class="fill">3 of 7 working · 43%</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Chord library</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note"><b>8 of 24 voicings produce the wrong notes.</b> See defect 01 — this is the most serious problem in the codebase, because it teaches wrong information convincingly.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Scale library</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Eight scales, but fretboard positions are <b>hand-typed fragments</b> — six or seven dots covering two strings, not a real pattern. Theory Studio already has a correct generator; Library doesn’t use it.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Scale fretboard range</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note"><code>Library.tsx:273</code> passes <code>frets={15} startFret={0}</code> — <b>neither prop exists</b> on <code>Fretboard</code>. Silently ignored; you always get frets 0–12.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Piano mirroring</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Scale and chord tones light correctly on the keyboard. A genuinely differentiated feature — and silent, which wastes most of its value.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Tab mirror of scale</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Correct, and inherits the thin marker data above.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Songs tab</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Nine cards, each with a “View tab →” button that <b>does not navigate</b> — and the data is a second, duplicate copy of the Tab Studio song list that can drift out of sync.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Drills / exercises tab</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Your own feature spec says “Library (Chord, Drills, exercises)”. <b>There is no drills tab.</b> Drills live only on the home page.</p>
+      </div>
+    </div>
+
+    <!-- Theory Studio -->
+    <div class="family">
+      <div class="family-head">
+        <strong>Theory Studio</strong>
+        <span class="route">/theory</span>
+        <span class="fill">5 of 7 working · 71%</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Circle of fifths</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Major and minor rings, key signatures, selection, ARIA roles. Solid.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Scale explorer</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Twelve scales × twelve roots, generated correctly from intervals across the whole neck with tone roles. <b>This is the app’s strongest engine</b> — and it’s used on exactly one page.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Interval reference</span><span class="pill p-ok">Working</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Ten theory lessons</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">All ten have real concept cards, worked examples and quizzes. I spot-checked every quiz — the music theory is accurate throughout. Best content in the product.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Quizzes</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Scoring, explanations, restart all work. <b>Results are discarded</b> — no XP, no completion state, no “Theory Scholar” achievement progress.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Diatonic chords per key</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Hardcoded to C major. Select F♯ and you still get C–Dm–Em–F–G–Am–B°.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Progression “Play” buttons</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Six of them, no handlers, nothing to play them with.</p>
+      </div>
+    </div>
+
+    <!-- You / Profile -->
+    <div class="family">
+      <div class="family-head">
+        <strong>You / Profile</strong>
+        <span class="route">/profile</span>
+        <span class="fill">2 of 8 working · 25%</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Contribution graph</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Beautiful, and randomly generated per mount. The 13/26/52-week toggle <b>redraws the grid but not the summary stats</b>, which stay frozen at the initial dataset.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Level &amp; XP card</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">Curve, ring, titles are all real maths over a constant XP value.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">League leaderboard</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Promotion/relegation zones, rank deltas, “ends in 3d” — a well-modelled Duolingo-style league with <b>seven fictional people</b> and no backend.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Weekly challenges</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Four challenges with progress bars. Nothing in the app increments them; no reward is ever paid out.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Achievements</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Eight badges with fixed earned/unearned flags and hand-typed dates.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Goals</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">“+ Add goal” is inert. <code>editingGoal</code> and <code>setGoals</code> state exist but the render reads the constant instead — <b>dead state, left over from an unfinished edit flow</b>.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Settings</span><span class="pill p-warn">Shell</span>
+        <p class="feat-note">Toggles flip and reset on navigation. The <b>theme switcher changes no colors</b> — there is no dark palette to switch to.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Account (plan, storage, export, delete)</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Five buttons, zero handlers, no auth layer. “2.4 GB / 10 GB” is fiction.</p>
+      </div>
+    </div>
+
+    <!-- Tuner -->
+    <div class="family">
+      <div class="family-head">
+        <strong>Tuner</strong>
+        <span class="route">/tuner</span>
+        <span class="fill">0 of 3 working · 0%</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Pitch detection</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Entirely simulated. <code>TunerPage.tsx:50</code> — a sine-wave loop drives the needle, and the note name cycles independently of it. It will read “in tune” with the microphone off and the guitar in a case.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Alternate tunings</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">Five tunings listed; selecting one changes the highlight and nothing else. Target frequencies stay standard.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">String targeting</span><span class="pill p-bad">Stub</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Duplicate implementation</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note"><code>components/Tuner.tsx</code> is a second, unused tuner — 182 lines that ship in the bundle and render nowhere.</p>
+      </div>
+    </div>
+
+    <!-- AI -->
+    <div class="family">
+      <div class="family-head">
+        <strong>AI assistant</strong>
+        <span class="route">global panel</span>
+        <span class="fill">1 of 3 working · 33%</span>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Panel, streaming, provenance</span><span class="pill p-ok">Working</span>
+        <p class="feat-note">The UX is right: context badge, streaming cursor, retry, copy, and an honest “verify before use” line. Keep all of it.</p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Actual AI</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note">A seven-entry keyword lookup. Ask anything outside those keywords and every user gets the same generic four-step fallback. <b>“Augmented with AI” is currently not true.</b></p>
+      </div>
+      <div class="feat">
+        <span class="feat-name">Context awareness</span><span class="pill p-bad">Stub</span>
+        <p class="feat-note"><code>AIRequest.context</code> is designed for “tap a marker, ask about that note” — and <b>nothing in the app ever sets it</b>. The best idea in the file is unwired.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ DEFECTS ══════════════════════════════════════ -->
+  <section id="defects">
+    <div class="sec-head">
+      <h2>Defects, in priority order</h2>
+      <p>Ten concrete problems found by reading the source and validating its music data programmatically.</p>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">01</div>
+      <div>
+        <h4>Eight chord voicings produce the wrong notes</h4>
+        <p>
+          I validated every entry in <code>CHORD_LIBRARY</code> by sounding its <code>frets</code>
+          array against standard tuning and comparing to its declared <code>notes</code>.
+          Eight disagree — and since <code>ChordDiagram</code> renders from <code>frets</code>,
+          <b>the diagram a learner copies is the wrong shape</b>.
+        </p>
+        <div class="scroll" style="margin-top:12px">
+          <table>
+            <thead><tr><th>Chord</th><th>frets in file</th><th>What it should sound</th><th>What it actually sounds</th></tr></thead>
+            <tbody>
+              <tr><td class="n">D</td><td class="m">-1,-1,2,3,2,-1</td><td class="m">D F♯ A</td><td class="m">A B F</td></tr>
+              <tr><td class="n">Dm</td><td class="m">-1,-1,0,2,3,1</td><td class="m">D F A</td><td class="m">C E F G</td></tr>
+              <tr><td class="n">C7</td><td class="m">0,1,3,2,3,-1</td><td class="m">C E G B♭</td><td class="m">C E B♭ <span style="color:var(--ink-4)">(no 5th)</span></td></tr>
+              <tr><td class="n">E7</td><td class="m">0,2,0,1,2,0</td><td class="m">E G♯ B D</td><td class="m">E G B C♯ D♯</td></tr>
+              <tr><td class="n">Em7</td><td class="m">0,0,0,2,2,0</td><td class="m">E G B D</td><td class="m">E G B <span style="color:var(--ink-4)">(it’s Em)</span></td></tr>
+              <tr><td class="n">Bdim</td><td class="m">-1,-1,0,1,0,1</td><td class="m">B D F</td><td class="m">A D♯ F G</td></tr>
+              <tr><td class="n">Dsus4</td><td class="m">-1,-1,0,2,3,-1</td><td class="m">D G A</td><td class="m">C E G</td></tr>
+              <tr><td class="n">Caug</td><td class="m">-1,-1,2,1,1,0</td><td class="m">C E G♯</td><td class="m">A A♯ D♯ E</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The pattern in D, Dm and Dsus4 is a <b>two-position array shift</b> — someone typed the
+          familiar low-to-high shape into a high-to-low array. Em7 and C7 are simply missing their
+          7th and 5th.
+        </p>
+        <p class="fix">
+          <b>Fix:</b> correct the eight arrays, then add a build-time assertion that derives notes
+          from frets and fails the build on mismatch. Never hand-maintain both sides of that pair
+          again — derive <code>notes</code> from <code>frets</code> at runtime and delete the field.
+        </p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">02</div>
+      <div>
+        <h4>Nothing in the app makes a sound</h4>
+        <p>
+          There is no <code>AudioContext</code>, no <code>&lt;audio&gt;</code>, no oscillator anywhere in
+          10,390 lines. The metronome is a flashing dot. “Hear” buttons, progression “Play” buttons,
+          the score playhead and the piano are all mute.
+        </p>
+        <p class="fix">
+          <b>Fix:</b> one <code>lib/audio.ts</code> singleton unlocked on first user gesture, with a
+          lookahead scheduler (25 ms timer, 100 ms schedule-ahead window) for the metronome and a
+          sampled or Karplus–Strong pluck for note playback. Roughly 250 lines unlocks eight
+          features at once. This is the highest-leverage change in the report.
+        </p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">03</div>
+      <div>
+        <h4>The tuner is a simulation that reports false confidence</h4>
+        <p>
+          <code>TunerPage.tsx:50</code> drives the needle from <code>Math.sin(t)</code>. It displays
+          “♦ IN TUNE” and a frequency in Hz without ever opening the microphone. A user who trusts
+          it will detune their guitar.
+        </p>
+        <p class="fix">
+          <b>Fix:</b> <code>getUserMedia</code> → <code>AnalyserNode</code> → autocorrelation or YIN
+          pitch detection (~120 lines), a median filter over the last five frames for needle
+          stability, and an explicit “no signal” state. Until then, label the page “Demo” — shipping
+          a fake tuner is a trust problem, not a feature gap.
+        </p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">04</div>
+      <div>
+        <h4>No persistence layer at all</h4>
+        <p>
+          Streak, XP, heatmap, routine checkboxes, settings, tab edits, imported songs — all
+          component state. Refresh and it is gone. The heatmap and contribution graph are worse than
+          reset: they are <code>Math.random()</code>, so they show a <b>different past</b> each load.
+        </p>
+        <p class="fix">
+          <b>Fix:</b> a <code>PracticeStore</code> context over <code>localStorage</code> with a
+          versioned schema — sessions, XP ledger, exercise PBs, settings, custom routines. Ship that
+          first; swap the same interface to a real backend later without touching components.
+        </p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">05</div>
+      <div>
+        <h4>Four TypeScript errors — the build does not typecheck</h4>
+        <p>
+          <code>vite build</code> succeeds because Vite does not typecheck. <code>tsc --noEmit</code>
+          reports: an unknown module in <code>imports/index.tsx</code>; invalid
+          <code>frets</code>/<code>startFret</code> props in <code>Library.tsx:273</code>;
+          a nullable <code>PlayerType</code> in <code>TabStudio.tsx:295</code>; and an unsupported
+          <code>onDark</code> prop on <code>LevelBadge</code> at <code>TabStudio.tsx:651</code>.
+        </p>
+        <p class="fix">
+          <b>Fix:</b> add <code>"typecheck": "tsc --noEmit"</code> to scripts and make it a gate.
+          Two of these four are silently broken UI, which is exactly what typechecking is for.
+        </p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">06</div>
+      <div>
+        <h4>Roughly 40 finished components are built and never imported</h4>
+        <p>
+          <code>CommandPalette</code>, <code>ToastStack</code>/<code>useToasts</code>,
+          <code>DropdownMenu</code>, <code>ContextMenu</code>, <code>Switch</code>,
+          <code>SliderField</code>, <code>TapTempo</code>, <code>DrillCard</code>,
+          <code>SongCard</code>, <code>ScaleCard</code>, <code>TempoLadder</code>,
+          <code>StepStrip</code>, <code>GoalBar</code>, <code>FinishLineCard</code>,
+          <code>EmptyState</code>, <code>Tabs</code>, <code>KeyPicker</code>, an entire second
+          <code>Tuner</code> — all shipped in the 554 kB bundle, all unrendered.
+        </p>
+        <p class="fix">
+          <b>Fix:</b> this is an opportunity, not just waste. <code>CommandPalette</code> and
+          <code>ToastStack</code> are the two things most missing from the UX (see the UI audit) and
+          both are <b>already written</b>. Wire those two, keep the drill/song cards for the library
+          rebuild, delete the rest.
+        </p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">07</div>
+      <div>
+        <h4><code>src/imports/</code> is 58,238 dead lines</h4>
+        <p>
+          Three near-identical 17,000-line gallery HTML files, a PNG screenshot, a duplicate CSS
+          design system, and an <code>index.tsx</code> that imports a module that does not exist.
+          Nothing in <code>src/</code> references any of it.
+        </p>
+        <p class="fix"><b>Fix:</b> delete the directory, or move it out of <code>src/</code> to <code>design/</code> so it stops confusing tooling and search.</p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">08</div>
+      <div>
+        <h4>Duplicated, drifting data</h4>
+        <p>
+          Songs are defined twice (Tab Studio: 9, Library: 9 — overlapping but not identical).
+          Scales are defined twice (Library: 8 hand-typed, Theory: 12 generated). The sidebar
+          advertises <b>“Chords 48”</b> while the library holds 24, and <b>“Songs 9”</b>, <b>“Scales 14”</b>
+          against different real counts.
+        </p>
+        <p class="fix"><b>Fix:</b> one <code>src/data/</code> directory as the single source — <code>chords.ts</code>, <code>scales.ts</code>, <code>songs.ts</code>, <code>drills.ts</code> — and derive every count in the UI from <code>.length</code>.</p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">09</div>
+      <div>
+        <h4>Contribution-graph range toggle only half works</h4>
+        <p>
+          <code>PracticeGraph.tsx:42</code> captures data in a <code>useState</code> initializer, so
+          the 13/26/52-week switch redraws the grid from the original 52-week array while
+          “Total practice”, “Current streak” and “Avg/session” never change.
+        </p>
+        <p class="fix"><b>Fix:</b> derive the visible window with <code>useMemo</code> from a stored session log rather than caching generated data.</p>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="d-num">10</div>
+      <div>
+        <h4>Dead state and inert primary actions</h4>
+        <p>
+          <code>Profile.tsx</code> declares <code>goals</code>/<code>setGoals</code> and
+          <code>editingGoal</code> then renders the <code>GOALS</code> constant instead.
+          Across the app roughly <b>18 buttons have no handler</b>, including “Start today’s session”,
+          “Quick train”, the sidebar settings gear, every Explore row, “Print”, “Practice”,
+          “+ Add goal”, “Save for later” and all six progression “Play” buttons.
+        </p>
+        <p class="fix"><b>Fix:</b> a lint rule banning <code>&lt;button&gt;</code> without <code>onClick</code>, plus a triage pass — wire it, or remove it until it exists. An inert button reads as a bug to users, not as “coming soon”.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ UI/UX ════════════════════════════════════════ -->
+  <section id="ux">
+    <div class="sec-head">
+      <h2>UI/UX audit against modern SaaS</h2>
+      <p>Where FretLab already competes, and the eight gaps a Linear/Notion/Duolingo-tier user would notice in the first two minutes.</p>
+    </div>
+
+    <h3>What already competes</h3>
+    <ul class="plain">
+      <li><b>The token system is real.</b> A coherent cream/violet palette, an <code>oklch</code> key-hue axis, five shadow tiers, named motion easings. Most indie apps never get this far.</li>
+      <li><b>Lexend + JetBrains Mono is a strong, non-obvious pairing</b> — Lexend is literally designed for reading proficiency, which is defensible for a learning tool.</li>
+      <li><b>Data density is right.</b> Dark instrument surfaces against light chrome gives the fretboard, score and tuner real presence.</li>
+      <li><b>The score view and chord diagrams are portfolio-grade</b> drawing work.</li>
+    </ul>
+
+    <h3>The eight gaps</h3>
+    <div class="grid2">
+      <div class="spec">
+        <h4>1 · No mobile layout</h4>
+        <ul>
+          <li>Zero <code>@media</code> queries in the entire codebase.</li>
+          <li>Fixed <code>224px 1fr</code> shell; Tab Studio adds a fixed <code>286px</code> column.</li>
+          <li>Below ~900 px the app is unusable — and <b>a guitarist practices with a phone on a music stand</b>.</li>
+          <li>This is the single biggest UX gap, ahead of everything below.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>2 · No feedback layer</h4>
+        <ul>
+          <li>No toasts, no confirmations, no optimistic states. <code>ToastStack</code> is written and unused.</li>
+          <li>No loading skeletons; the only “loading” is a fake 800 ms delay.</li>
+          <li>No empty states — <code>EmptyState</code> exists, unused.</li>
+          <li>No error boundary: one bad song object white-screens the app.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>3 · Everything is inline styles</h4>
+        <ul>
+          <li>~8,000 lines of <code>style={{…}}</code> with no hover/focus/active states, because inline CSS cannot express them.</li>
+          <li>Hover is hand-patched with <code>onMouseEnter</code> in a handful of places and absent everywhere else.</li>
+          <li>Tailwind v4 is installed and essentially unused.</li>
+          <li>Consequence: the app feels <b>flat and unresponsive to the cursor</b> — the clearest “not a real SaaS” tell.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>4 · No keyboard layer</h4>
+        <ul>
+          <li>No shortcuts at all — not even <kbd>Space</kbd> to start the metronome.</li>
+          <li><code>CommandPalette</code> is built and unmounted; <kbd>⌘K</kbd> is table stakes now.</li>
+          <li>Card “buttons” are <code>&lt;div onClick&gt;</code> — not tabbable, not <kbd>Enter</kbd>-activatable.</li>
+          <li>Practice tools especially need hands-free control: you are holding a guitar.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>5 · Dark mode is a lie</h4>
+        <ul>
+          <li>The theme switcher stores a value and changes nothing.</li>
+          <li>No dark token block exists — the palette is light-only.</li>
+          <li>Practicing at night on a bright cream canvas is a real complaint waiting to happen.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>6 · Static chrome</h4>
+        <ul>
+          <li>The top-bar key badge always says “C major” and is not a control.</li>
+          <li>“Quick train →” does nothing; the settings gear does nothing.</li>
+          <li>Sidebar “Explore” rows are hover-styled but unclickable, with counts that don’t match reality.</li>
+          <li>The avatar is hardcoded to “Jamie Davis · Intermediate”.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>7 · No onboarding or progressive disclosure</h4>
+        <ul>
+          <li>A first-time user lands on a dashboard claiming a 14-day streak they never earned.</li>
+          <li>No skill assessment, no goal-setting, no “what do you want to learn” path.</li>
+          <li>Duolingo’s entire retention model starts here; yours starts at a fabricated dashboard.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>8 · Accessibility is partial</h4>
+        <ul>
+          <li>The unused <code>controls.tsx</code> has excellent ARIA. The shipped pages mostly don’t.</li>
+          <li>Clickable <code>div</code>s throughout the drill, exercise, lesson and song lists.</li>
+          <li>Color-only state on fretboard tones and heat cells.</li>
+          <li>No <code>prefers-reduced-motion</code> handling despite constant animation.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note">
+      <p><strong>If you fix one thing in this section:</strong> move off inline styles onto Tailwind (already installed) or CSS modules, so that hover, focus, active and dark variants become expressible. Gaps 3, 5 and 8 all collapse into that one migration, and the “modern SaaS feel” you’re chasing lives almost entirely in those states.</p>
+    </div>
+  </section>
+
+  <!-- ══ GAMIFICATION ═════════════════════════════════ -->
+  <section id="game">
+    <div class="sec-head">
+      <h2>Completing the gamification concept</h2>
+      <p>You have the stem: an XP curve, eleven rank titles, a league with promotion zones, four weekly challenges, eight achievements. What’s missing is the loop that connects playing a guitar to any of it.</p>
+    </div>
+
+    <p>
+      Today <code>PLAYER.xp = 8450</code> is a constant. Nothing awards XP. Nothing increments a
+      challenge. No achievement is ever unlocked. The economy has a currency and no mint. Here is
+      the full concept.
+    </p>
+
+    <h3>1 · The XP mint — where points come from</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Event</th><th>XP</th><th>Design intent</th></tr></thead>
+        <tbody>
+          <tr><td class="n">Practice minute logged</td><td class="m">2 XP</td><td class="d">Base income. Caps at 90 min/day so grinding can’t break the league.</td></tr>
+          <tr><td class="n">Drill completed at target BPM</td><td class="m">40 XP</td><td class="d">Rewards finishing, not just starting.</td></tr>
+          <tr><td class="n">New personal-best BPM</td><td class="m">60 XP</td><td class="d">The core progression signal for a guitarist.</td></tr>
+          <tr><td class="n">Clean-run bonus (no missed beats)</td><td class="m">×1.5</td><td class="d">Requires audio input — ties gamification to real playing.</td></tr>
+          <tr><td class="n">Lesson quiz, first pass</td><td class="m">25 XP/question</td><td class="d">Theory Studio currently earns nothing at all.</td></tr>
+          <tr><td class="n">Song section mastered</td><td class="m">120 XP</td><td class="d">Biggest single award; songs are why people practice.</td></tr>
+          <tr><td class="n">Daily streak maintained</td><td class="m">+10%/day, cap +50%</td><td class="d">Multiplier, not flat bonus — compounding is what makes streaks feel costly to break.</td></tr>
+          <tr><td class="n">Weekly challenge cleared</td><td class="m">200–350 XP</td><td class="d">Already specified in <code>gamification.ts</code>; just never paid.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>2 · Streak mechanics that survive real life</h3>
+    <ul class="plain">
+      <li><b>Minimum viable day:</b> 5 minutes or one completed drill counts. Make the floor low enough that streaks rarely die by accident.</li>
+      <li><b>Streak freeze:</b> earn one per 7-day streak, hold a maximum of two, auto-spend on a missed day. This is the single highest-impact retention mechanic in Duolingo and it’s cheap to build.</li>
+      <li><b>Streak repair:</b> within 48 hours, restore a broken streak by completing a double session. Converts churn moments into engagement.</li>
+      <li><b>Rest days:</b> let users designate one weekly rest day that never breaks a streak. Guitarists get sore hands; punishing that is bad pedagogy.</li>
+      <li><b>Milestone rewards</b> at 7/14/30/100/365 days — badge, and a cosmetic fretboard inlay skin.</li>
+    </ul>
+
+    <h3>3 · Turn the league into a real system</h3>
+    <ul class="plain">
+      <li><b>Ten tiers</b>, not one. Nylon → Bronze → Copper → Amethyst (you have this one) → Sapphire → Emerald → Ruby → Obsidian → Platinum → Legend.</li>
+      <li><b>Cohorts of 30</b>, assigned on first qualifying session of the week, top 7 promote, bottom 5 relegate.</li>
+      <li><b>Weekly reset Sunday 23:59 local.</b> The “Ends in 3d” badge is already rendered — make it a live countdown.</li>
+      <li><b>Bot cohorts at launch.</b> With no user base, seed leagues with plausible bot schedules. This is standard practice and it’s the only way leagues work pre-scale.</li>
+      <li><b>Rank-change animation on Monday</b> — the payoff moment the current static list has no room for.</li>
+    </ul>
+
+    <h3>4 · Achievements as a real taxonomy</h3>
+    <div class="grid2">
+      <div class="spec">
+        <h4>Consistency</h4>
+        <ul>
+          <li>Streaks at 7 / 14 / 30 / 100 / 365 days</li>
+          <li>Practice before 7 am ×10 — <i>Dawn Patrol</i></li>
+          <li>Practice after 11 pm ×10 — <i>Night Shift</i></li>
+          <li>Every day of one calendar month</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Technique</h4>
+        <ul>
+          <li>Any drill at 180 BPM — <i>Speed Demon</i></li>
+          <li>All 5 pentatonic boxes at 120 BPM — <i>Box Set</i></li>
+          <li>F barre clean at 80 BPM — <i>Barre Exam</i></li>
+          <li>Sweep arpeggio clean at 140 — <i>Sweeper</i></li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Knowledge</h4>
+        <ul>
+          <li>All 10 lessons complete — <i>Theory Scholar</i></li>
+          <li>Perfect score on 5 quizzes — <i>Straight A</i></li>
+          <li>Name all 12 keys’ signatures — <i>Circle Master</i></li>
+          <li>Identify 20 intervals by ear — <i>Golden Ear</i></li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Repertoire</h4>
+        <ul>
+          <li>First song end to end — <i>Encore</i></li>
+          <li>10 songs mastered — <i>Setlist</i></li>
+          <li>A song in each of 5 genres — <i>Session Cat</i></li>
+          <li>Write and export an original tab — <i>Composer</i></li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Exploration</h4>
+        <ul>
+          <li>Play in all 12 keys — <i>Twelve Tones</i></li>
+          <li>Use all 5 alternate tunings — <i>Retuned</i></li>
+          <li>Every mode of the major scale — <i>Modal Nomad</i></li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Hidden / delight</h4>
+        <ul>
+          <li>Tune all 6 strings within 2¢ in one pass — <i>Perfect Pitch</i></li>
+          <li>Practice on a public holiday — <i>No Days Off</i></li>
+          <li>Play Smoke on the Water on day one — <i>Obligatory</i></li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>5 · The missing middle: mastery per item</h3>
+    <p>
+      Right now progress is one global number. Real practice apps track mastery <b>per drill, per
+      chord, per scale shape</b>. Give every library item a five-state ladder —
+      <span class="mono">New → Learning → Familiar → Solid → Mastered</span> — promoted by clean runs
+      at increasing tempo and demoted by decay over time. That single addition gives you:
+    </p>
+    <ul class="plain">
+      <li>A <b>spaced-repetition queue</b> — “7 items are due for review” is the strongest possible reason to open the app.</li>
+      <li>A <b>real</b> “Today’s routine” generated from weakest items rather than a fixed list.</li>
+      <li>Meaningful heatmap colors (mastery gained, not minutes idled).</li>
+      <li>Honest achievement criteria, since “mastered” finally has a definition.</li>
+    </ul>
+  </section>
+
+  <!-- ══ CONTENT EXPANSION ════════════════════════════ -->
+  <section id="content">
+    <div class="sec-head">
+      <h2>Library expansion targets</h2>
+      <p>Concrete additions for warm-ups, chords, scales and songs. Current inventory: 6 warm-ups, 5 exercises, 24 chords, 8 library scales, 9 songs.</p>
+    </div>
+
+    <h3>Warm-ups &amp; drills — 6 today, target 30</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Drill</th><th>Family</th><th>Level</th><th>Start BPM</th><th>What it fixes</th></tr></thead>
+        <tbody>
+          <tr><td class="n">1-2-3-4 chromatic (have)</td><td class="d">Spider</td><td class="d">Beg</td><td class="m">60</td><td class="d">Finger independence, baseline</td></tr>
+          <tr><td class="n">1-3-2-4 &amp; 4-2-3-1 permutations</td><td class="d">Spider</td><td class="d">Beg</td><td class="m">60</td><td class="d">The 24 permutations — weak-finger gaps</td></tr>
+          <tr><td class="n">Spider walk (diagonal)</td><td class="d">Spider</td><td class="d">Int</td><td class="m">70</td><td class="d">String-crossing while shifting position</td></tr>
+          <tr><td class="n">Chromatic clusters (2-string)</td><td class="d">Spider</td><td class="d">Int</td><td class="m">80</td><td class="d">Hand-sync at speed</td></tr>
+          <tr><td class="n">Alternate picking, one string</td><td class="d">Picking</td><td class="d">Beg</td><td class="m">70</td><td class="d">Pick-hand consistency before movement</td></tr>
+          <tr><td class="n">Inside/outside picking pairs</td><td class="d">Picking</td><td class="d">Int</td><td class="m">80</td><td class="d">The two hard string-crossing cases</td></tr>
+          <tr><td class="n">Economy picking 3s</td><td class="d">Picking</td><td class="d">Adv</td><td class="m">90</td><td class="d">Sweep-adjacent efficiency</td></tr>
+          <tr><td class="n">Tremolo burst (10s on / 10s off)</td><td class="d">Picking</td><td class="d">Int</td><td class="m">120</td><td class="d">Endurance without tension</td></tr>
+          <tr><td class="n">Gallop &amp; reverse gallop</td><td class="d">Rhythm</td><td class="d">Int</td><td class="m">100</td><td class="d">Metal right-hand vocabulary</td></tr>
+          <tr><td class="n">Palm-mute chugs, 8ths→16ths</td><td class="d">Rhythm</td><td class="d">Beg</td><td class="m">80</td><td class="d">Mute control and subdivision</td></tr>
+          <tr><td class="n">Strum-pattern ladder (8 patterns)</td><td class="d">Rhythm</td><td class="d">Beg</td><td class="m">70</td><td class="d">The gap for total beginners</td></tr>
+          <tr><td class="n">Syncopation / off-beat accents</td><td class="d">Rhythm</td><td class="d">Int</td><td class="m">80</td><td class="d">Playing behind the beat</td></tr>
+          <tr><td class="n">Hammer/pull cycles (have)</td><td class="d">Legato</td><td class="d">Beg</td><td class="m">70</td><td class="d">Fretting strength</td></tr>
+          <tr><td class="n">3-note-per-string legato runs</td><td class="d">Legato</td><td class="d">Adv</td><td class="m">90</td><td class="d">Satriani/Vai fluency</td></tr>
+          <tr><td class="n">Trills, all finger pairs (have)</td><td class="d">Legato</td><td class="d">Int</td><td class="m">90</td><td class="d">1-2, 1-3, 1-4, 2-3, 2-4, 3-4</td></tr>
+          <tr><td class="n">Slide accuracy, fret targeting</td><td class="d">Legato</td><td class="d">Beg</td><td class="m">60</td><td class="d">Landing in tune after a shift</td></tr>
+          <tr><td class="n">Bend-to-pitch (½, whole, 1½)</td><td class="d">Expression</td><td class="d">Int</td><td class="m">—</td><td class="d">Needs pitch detection — a killer drill</td></tr>
+          <tr><td class="n">Unison bend check</td><td class="d">Expression</td><td class="d">Int</td><td class="m">—</td><td class="d">Self-verifying intonation</td></tr>
+          <tr><td class="n">Vibrato width &amp; rate control</td><td class="d">Expression</td><td class="d">Adv</td><td class="m">60</td><td class="d">The thing that separates players</td></tr>
+          <tr><td class="n">Open-chord transition timer</td><td class="d">Chords</td><td class="d">Beg</td><td class="m">60</td><td class="d">Changes per minute — highly measurable</td></tr>
+          <tr><td class="n">Barre endurance (F, Bm, B♭)</td><td class="d">Chords</td><td class="d">Int</td><td class="m">60</td><td class="d">The classic beginner wall</td></tr>
+          <tr><td class="n">Triad inversions on 3 string sets</td><td class="d">Chords</td><td class="d">Adv</td><td class="m">70</td><td class="d">Neck-wide harmony</td></tr>
+          <tr><td class="n">CAGED shape cycling</td><td class="d">Chords</td><td class="d">Int</td><td class="m">60</td><td class="d">Already referenced in the AI copy</td></tr>
+          <tr><td class="n">Pentatonic box connection (1↔2↔3)</td><td class="d">Scales</td><td class="d">Int</td><td class="m">80</td><td class="d">Escaping box 1 — the #1 plateau</td></tr>
+          <tr><td class="n">3-note-per-string major, 7 positions</td><td class="d">Scales</td><td class="d">Adv</td><td class="m">90</td><td class="d">Full-neck fluency</td></tr>
+          <tr><td class="n">Scale sequences (3s, 4s, thirds)</td><td class="d">Scales</td><td class="d">Int</td><td class="m">80</td><td class="d">Turns scales into melodic ideas</td></tr>
+          <tr><td class="n">Arpeggio sweeps, 3→5 string</td><td class="d">Scales</td><td class="d">Adv</td><td class="m">70</td><td class="d">Extends the existing sweep drill</td></tr>
+          <tr><td class="n">Fretboard note-naming sprint</td><td class="d">Knowledge</td><td class="d">Beg</td><td class="m">—</td><td class="d">Timed quiz — “name the 7th fret, 4th string”</td></tr>
+          <tr><td class="n">Interval ear trainer</td><td class="d">Knowledge</td><td class="d">Int</td><td class="m">—</td><td class="d">Needs audio; pairs with the intervals lesson</td></tr>
+          <tr><td class="n">Chord-quality ear trainer</td><td class="d">Knowledge</td><td class="d">Int</td><td class="m">—</td><td class="d">maj / min / dom7 / dim / aug</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>Give every drill a data shape, not just a card.</strong> Add <code>tabPattern</code> (so the drill renders on the fretboard and in the score view), <code>targetBpm</code>, <code>successCriteria</code>, <code>prerequisites</code> and <code>relatedLesson</code>. Without <code>tabPattern</code> a drill can never be more than a description — which is exactly why “▶ Start” has nothing to do today.</p>
+    </div>
+
+    <h3>Chords — 24 today, target 120+</h3>
+    <p>
+      Hand-typing 120 voicings will reproduce defect 01 at scale. Generate them instead: define
+      a <b>formula table</b> (quality → intervals) and a <b>shape table</b> (CAGED root-string
+      templates), then produce every root × quality × position combination and validate each against
+      its formula at build time.
+    </p>
+    <div class="grid2">
+      <div class="spec">
+        <h4>Qualities to cover</h4>
+        <ul>
+          <li><b>Triads:</b> maj, min, dim, aug</li>
+          <li><b>Sevenths:</b> maj7, 7, m7, mMaj7, m7♭5, dim7</li>
+          <li><b>Suspended:</b> sus2, sus4, 7sus4</li>
+          <li><b>Added:</b> add9, 6, m6, 6/9</li>
+          <li><b>Extended:</b> 9, maj9, m9, 11, 13</li>
+          <li><b>Altered:</b> 7♯5, 7♭5, 7♯9 (the Hendrix chord), 7♭9</li>
+          <li><b>Power:</b> 5, and octave shapes</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Per-chord data to add</h4>
+        <ul>
+          <li><b>Multiple voicings</b> — open, E-shape barre, A-shape barre, drop-2, drop-3, triad on top 3 strings</li>
+          <li><b>Inversions</b> — root, 1st, 2nd position labelled</li>
+          <li><b>Difficulty + barre flag</b> so beginners can filter</li>
+          <li><b>Function tags</b> — which keys it is I/IV/V/ii/vi in</li>
+          <li><b>Common substitutions</b> — “try Am7 for C”</li>
+          <li><b>Songs that use it</b> — links straight into Tab Studio</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Scales — 8 in Library / 12 in Theory, target 30 unified</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Group</th><th>Add</th><th>Why it earns a slot</th></tr></thead>
+        <tbody>
+          <tr><td class="n">Modes</td><td class="d">Phrygian, Lydian, Locrian in Library (Theory has them, Library doesn’t)</td><td class="d">Completes the set of 7 in both places</td></tr>
+          <tr><td class="n">Minor family</td><td class="d">Melodic minor, Phrygian dominant, Dorian ♭2, Lydian ♯2</td><td class="d">Metal, flamenco, neoclassical vocabulary</td></tr>
+          <tr><td class="n">Pentatonic</td><td class="d">All 5 box positions per scale, plus Japanese (Hirajoshi, In Sen), Egyptian</td><td class="d">Box connection is the most-requested lesson in guitar teaching</td></tr>
+          <tr><td class="n">Blues</td><td class="d">Major blues, composite blues (major+minor hybrid)</td><td class="d">What players actually use over a 12-bar</td></tr>
+          <tr><td class="n">Symmetric</td><td class="d">Whole tone, diminished (H-W and W-H), chromatic</td><td class="d">Jazz and outside playing</td></tr>
+          <tr><td class="n">Jazz</td><td class="d">Bebop dominant, bebop major, altered (super-locrian), Lydian dominant</td><td class="d">Opens an entire audience segment</td></tr>
+          <tr><td class="n">World</td><td class="d">Harmonic major, Hungarian minor, Byzantine, Enigmatic</td><td class="d">Differentiation — few apps carry these</td></tr>
+          <tr><td class="n">Per-scale data</td><td class="d">All 5–7 positions, 3-note-per-string layout, characteristic note, parent scale, chords it fits over, 2 reference songs</td><td class="d">Turns a diagram into a lesson</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Songs — 9 today, target 60 across a difficulty ladder</h3>
+    <p>
+      The current nine skew classic-rock and intermediate. A library that retains beginners needs a
+      real ladder, and one that retains improvers needs technique-specific targets. Group by
+      <b>what it teaches</b>, not by genre alone.
+    </p>
+    <div class="grid2">
+      <div class="spec">
+        <h4>Tier 1 · Two to four open chords</h4>
+        <ul>
+          <li>Horse With No Name — Am, Em (2 chords, whole song)</li>
+          <li>Knockin’ on Heaven’s Door — G D Am C</li>
+          <li>Three Little Birds — A D E</li>
+          <li>What’s Up — A Bm D</li>
+          <li>Love Me Do — G C D</li>
+          <li>Bad Moon Rising — D A G</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Tier 2 · Riffs before barre chords</h4>
+        <ul>
+          <li>Seven Nation Army — single-string riff</li>
+          <li>Iron Man — power chords, slow</li>
+          <li>Day Tripper — the definitive riff study</li>
+          <li>You Really Got Me — power-chord slides</li>
+          <li>Beat It — riff plus palm mute</li>
+          <li>Otherside — bass-line riff on guitar</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Tier 3 · Barre chords and fingerpicking</h4>
+        <ul>
+          <li>Hotel California (have) — barre + arpeggio</li>
+          <li>Dust in the Wind — travis picking</li>
+          <li>Everybody Hurts — arpeggiated open</li>
+          <li>Zombie — four barre chords, whole song</li>
+          <li>Under the Bridge — chord embellishment</li>
+          <li>Landslide — capo travis picking</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Tier 4 · Lead and solo studies</h4>
+        <ul>
+          <li>Comfortably Numb solo — already in your routine data</li>
+          <li>Sweet Child O’ Mine — intro + pentatonic solo</li>
+          <li>Sultans of Swing — fingerstyle lead</li>
+          <li>Stairway solo — phrasing over changes</li>
+          <li>Little Wing — chord-melody</li>
+          <li>Crazy Train — pedal-point riffing</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Tier 5 · Technique showcases</h4>
+        <ul>
+          <li>Eruption — tapping</li>
+          <li>Master of Puppets — downpicking endurance</li>
+          <li>Cliffs of Dover — hybrid picking</li>
+          <li>Classical Gas — fingerstyle</li>
+          <li>Cissy Strut — funk 16ths</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Per-song data to add</h4>
+        <ul>
+          <li><b>Sections</b> — intro/verse/chorus/solo, each separately practiceable and loopable</li>
+          <li><b>Techniques required</b> — so it can be recommended off a drill</li>
+          <li><b>Prerequisite drills</b> — “learn barre chords first”</li>
+          <li><b>Slow-practice tempo</b> alongside the real one</li>
+          <li><b>Licensing note</b> — see below</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <p><strong>Licensing, before you scale this.</strong> Tab transcriptions of copyrighted songs are derivative works. The NMPA’s 2010s enforcement closed several large tab sites; Ultimate Guitar and Songsterr operate under publisher licences.</p>
+      <p>Safe paths: <b>public-domain and traditional material</b> (House of the Rising Sun already qualifies), <b>original exercises and études you author</b>, <b>user-uploaded private tabs</b> the user does not publish, and <b>chord-only progressions</b> (chord sequences are not copyrightable in the same way full transcriptions are). Build the ladder above from those three sources first, and treat licensed commercial tabs as a later business-development step rather than a content task.</p>
+    </div>
+  </section>
+
+  <!-- ══ NEW FEATURES ═════════════════════════════════ -->
+  <section id="new">
+    <div class="sec-head">
+      <h2>New features worth building</h2>
+      <p>Ranked by leverage against what already exists, not by novelty.</p>
+    </div>
+
+    <div class="grid2">
+      <div class="spec">
+        <h4>Tier 1 · Unlocks everything else</h4>
+        <ul>
+          <li><b>Audio engine</b> — metronome with accents and subdivisions, count-in, note playback for piano/fretboard/chords, progression playback. Eight dead buttons become live.</li>
+          <li><b>Real pitch detection</b> — the tuner, plus bend trainer, intonation checker, and “did you play it right?” drill scoring.</li>
+          <li><b>Persistence + session logging</b> — makes every stat in the app true.</li>
+          <li><b>Practice session player</b> — the thing “Start today’s session” should open: a full-screen, step-by-step runner with timer, metronome, tab, and auto-advance.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Tier 2 · Core differentiators</h4>
+        <ul>
+          <li><b>Tempo ladder / speed trainer</b> — auto-increment BPM by 2–5 after each clean pass. <code>TempoLadder</code> is already written and unused.</li>
+          <li><b>Loop &amp; slow-down player</b> — A/B loop with time-stretch over the YouTube embed. The single most-used feature in every competing app.</li>
+          <li><b>Spaced-repetition review queue</b> — driven by the mastery ladder.</li>
+          <li><b>Routine builder</b> — drag drills into a template, save, schedule, share.</li>
+          <li><b>Real AI</b> — replace the keyword table with an API call, and wire the <code>context</code> field so tapping a fret asks about <i>that note in this scale</i>.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Tier 3 · Depth</h4>
+        <ul>
+          <li><b>Backing tracks</b> per key, tempo and style, generated from the progression data you already have.</li>
+          <li><b>Recording</b> — capture a take, attach it to the session, compare week over week. Your Account panel already promises storage for it.</li>
+          <li><b>Ear training module</b> — intervals, chord qualities, progressions; the theory content already supports it.</li>
+          <li><b>Fretboard note trainer</b> — timed, gamified, feeds the knowledge achievements.</li>
+          <li><b>MIDI input</b> — “Connected apps” already lists a MIDI controller.</li>
+          <li><b>Capo &amp; transpose</b> across every tab and chord chart.</li>
+          <li><b>Left-handed mode</b> and alternate/extended-range tunings throughout.</li>
+        </ul>
+      </div>
+      <div class="spec">
+        <h4>Tier 4 · Product surface</h4>
+        <ul>
+          <li><b>Auth and cloud sync</b> — your own <code>APP-TEMPLATE-CONTRACT.md</code> specifies sign-up, sessions, password reset and protected routes. None exist.</li>
+          <li><b>Onboarding</b> — skill assessment, goal selection, generated first routine.</li>
+          <li><b>Teacher/student mode</b> — assign routines, review student logs. This is where the revenue is.</li>
+          <li><b>Shareable progress cards</b> — a rendered “14-day streak” image is free distribution.</li>
+          <li><b>PWA + offline</b> — practice happens where wifi doesn’t.</li>
+          <li><b>Export</b> — PDF chord sheets, MusicXML, Guitar Pro, plain ASCII from the tab editor.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ROADMAP ══════════════════════════════════════ -->
+  <section id="roadmap">
+    <div class="sec-head">
+      <h2>Suggested sequence</h2>
+      <p>Ordered so each phase makes the next one cheaper. Phase 0 exists because shipping a fake tuner and wrong chord shapes costs more trust than any feature buys.</p>
+    </div>
+
+    <div class="phase">
+      <div class="phase-tag">Phase 0</div>
+      <div>
+        <h4>Stop teaching wrong information</h4>
+        <p>Fix the 8 chord voicings and add the derive-and-assert test. Fix the 4 type errors and gate the build on <code>tsc</code>. Label the tuner and AI panel as demos until they are real. Delete <code>src/imports/</code>. Remove or wire the 18 inert buttons.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-tag">Phase 1</div>
+      <div>
+        <h4>Make it real</h4>
+        <p>Audio engine. Persistence store with session logging. Replace every hardcoded stat and every <code>Math.random()</code> dataset with derived values. Ship the practice session player behind “Start today’s session”.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-tag">Phase 2</div>
+      <div>
+        <h4>Make it feel like software</h4>
+        <p>Migrate inline styles to Tailwind. Add hover/focus/active states, dark mode, mobile breakpoints. Mount <code>CommandPalette</code> and <code>ToastStack</code>. Add an error boundary and empty states. Fix keyboard access on card lists.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-tag">Phase 3</div>
+      <div>
+        <h4>Close the gamification loop</h4>
+        <p>XP mint, mastery ladder per item, streak freezes, real leagues with bot cohorts, the full achievement taxonomy, and the spaced-repetition review queue that ties it all to daily return.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-tag">Phase 4</div>
+      <div>
+        <h4>Scale the library</h4>
+        <p>Move all content into <code>src/data/</code>, generate chords from formulas, unify scales onto the Theory Studio engine, build the song ladder from public-domain and original material, and expand drills to 30 with real <code>tabPattern</code> data.</p>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-tag">Phase 5</div>
+      <div>
+        <h4>Become a product</h4>
+        <p>Auth and cloud sync, onboarding, real AI with fretboard context, loop/slow-down player, recording, and the teacher/student tier.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    FretLab v3 · React 19 · Vite 8 · audited 13 Sep 2026 · 10,390 lines app code, 58,238 lines dead in src/imports
+  </footer>
+
+</div>
+
+</body>
+</html>
